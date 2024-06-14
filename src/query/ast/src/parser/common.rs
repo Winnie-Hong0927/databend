@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+// 实现了一个 SQL 解析器的核心组件
+// nom 库提供了组合解析器的基础设施。
 use nom::branch::alt;
 use nom::combinator::consumed;
 use nom::combinator::map;
@@ -19,10 +20,11 @@ use nom::multi::many1;
 use nom::sequence::terminated;
 use nom::Offset;
 use nom::Slice;
+// pratt 库用于实现 Pratt 解析器，处理表达式的优先级解析。
 use pratt::PrattError;
 use pratt::PrattParser;
 use pratt::Precedence;
-
+// crate::ast::* 和 crate::parser::* 包含了自定义的抽象语法树 (AST) 结构和解析器辅助函数。
 use crate::ast::quote::QuotedIdent;
 use crate::ast::ColumnID;
 use crate::ast::DatabaseRef;
@@ -36,9 +38,9 @@ use crate::parser::ErrorKind;
 use crate::rule;
 use crate::Range;
 use crate::Span;
-
+// IResult<'a, Output> 是 nom 的解析结果类型，封装了输入和输出以及可能的错误。
 pub type IResult<'a, Output> = nom::IResult<Input<'a>, Output, Error<'a>>;
-
+//rule! 宏用于定义解析规则，使用 nom_rule 库，并结合自定义的 match_text 和 match_token 函数。
 #[macro_export]
 macro_rules! rule {
     ($($tt:tt)*) => { nom_rule::rule!(
@@ -47,7 +49,7 @@ macro_rules! rule {
         $($tt)*)
     }
 }
-
+// match_text 和 match_token 函数用于匹配特定文本或令牌类型，并返回匹配的令牌或错误。
 pub fn match_text(text: &'static str) -> impl FnMut(Input) -> IResult<&Token> {
     move |i| match i.tokens.first().filter(|token| token.text() == text) {
         Some(token) => Ok((i.slice(1..), token)),
@@ -89,7 +91,7 @@ pub fn lambda_params(i: Input) -> IResult<Vec<Identifier>> {
         | #multi_params
     )(i)
 }
-
+//这些函数用于解析 SQL 中的标识符、函数名、阶段名等。
 pub fn ident(i: Input) -> IResult<Identifier> {
     non_reserved_identifier(|token| token.is_reserved_ident(false))(i)
 }
@@ -112,7 +114,7 @@ pub fn stage_name(i: Input) -> IResult<Identifier> {
         | #anonymous_stage
     )(i)
 }
-
+// plain_identifier 和 quoted_identifier 函数用于解析普通标识符和带引号的标识符。
 fn plain_identifier(
     is_reserved_keyword: fn(&TokenKind) -> bool,
 ) -> impl FnMut(Input) -> IResult<Identifier> {
@@ -175,7 +177,7 @@ fn identifier_hole(i: Input) -> IResult<Identifier> {
         },
     ))(i)
 }
-
+// non_reserved_identifier 函数用于解析非保留关键字的标识符。
 fn non_reserved_identifier(
     is_reserved_keyword: fn(&TokenKind) -> bool,
 ) -> impl FnMut(Input) -> IResult<Identifier> {
@@ -203,7 +205,7 @@ fn non_reserved_keyword(
         ))),
     }
 }
-
+// 这些函数用于解析数据库引用 (database_ref)、表引用 (table_ref) 和列 ID (column_id)。
 pub fn database_ref(i: Input) -> IResult<DatabaseRef> {
     map(dot_separated_idents_1_to_2, |(catalog, database)| {
         DatabaseRef { catalog, database }
@@ -274,7 +276,7 @@ pub fn dot_separated_idents_1_to_3(
         },
     )(i)
 }
-
+// 这些函数用于解析由逗号分隔的列表。
 pub fn comma_separated_list0<'a, T>(
     item: impl FnMut(Input<'a>) -> IResult<'a, T>,
 ) -> impl FnMut(Input<'a>) -> IResult<'a, Vec<T>> {
@@ -451,7 +453,7 @@ pub fn transform_span(tokens: &[Token]) -> Span {
         end: tokens.last().unwrap().span.end,
     })
 }
-
+//run_pratt_parser 函数用于运行 Pratt 解析器，解析带有优先级的表达式。
 pub fn run_pratt_parser<'a, I, P, E>(
     mut parser: P,
     iter: &I,
