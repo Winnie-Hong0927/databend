@@ -50,7 +50,7 @@ impl Display for Range {
         write!(f, "{}..{}", self.start, self.end)
     }
 }
-
+//对Range进行类型转换，可以转换为std::ops::Range<usize>
 impl From<Range> for std::ops::Range<usize> {
     fn from(range: Range) -> std::ops::Range<usize> {
         (range.start as usize)..(range.end as usize)
@@ -65,14 +65,14 @@ impl From<std::ops::Range<usize>> for Range {
         }
     }
 }
-
+//span加上偏移量，返回偏移之后的span
 pub fn offset_span(span: Span, offset: usize) -> Span {
     span.map(|range| Range {
         start: range.start + offset as u32,
         end: range.end + offset as u32,
     })
 }
-
+//整合两个span
 pub fn merge_span(lhs: Span, rhs: Span) -> Span {
     match (lhs, rhs) {
         (Some(lhs), Some(rhs)) => Some(Range {
@@ -84,7 +84,7 @@ pub fn merge_span(lhs: Span, rhs: Span) -> Span {
         (None, None) => None,
     }
 }
-
+//打印错误信息
 pub fn pretty_print_error(source: &str, labels: Vec<(Range, String)>) -> String {
     use codespan_reporting::diagnostic::Diagnostic;
     use codespan_reporting::diagnostic::Label;
