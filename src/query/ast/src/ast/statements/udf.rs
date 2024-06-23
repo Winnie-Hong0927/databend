@@ -23,7 +23,7 @@ use crate::ast::CreateOption;
 use crate::ast::Expr;
 use crate::ast::Identifier;
 use crate::ast::TypeName;
-
+// 用户自定义函数
 #[derive(Debug, Clone, PartialEq, Drive, DriveMut)]
 pub enum UDFDefinition {
     LambdaUDF {

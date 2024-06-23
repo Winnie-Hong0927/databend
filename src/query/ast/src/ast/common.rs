@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+// 用于处理 SQL 中的标识符、列引用、数据库引用和表引用等
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write as _;
@@ -25,11 +25,12 @@ use crate::Span;
 
 // Identifier of table name or column name.
 #[derive(Debug, Clone, PartialEq, Eq, Drive, DriveMut)]
+// Identifier 结构体表示一个 SQL 标识符
 pub struct Identifier {
-    pub span: Span,
+    pub span: Span,//标识符的位置
     pub name: String,
-    pub quote: Option<char>,
-    pub is_hole: bool,
+    pub quote: Option<char>,// 引用字符（如果有）
+    pub is_hole: bool,//是否是占位符
 }
 
 impl Identifier {
@@ -67,11 +68,11 @@ impl Display for Identifier {
         }
     }
 }
-
+// 按位置引用的列
 #[derive(Debug, Clone, PartialEq, Eq, Drive, DriveMut)]
 pub struct ColumnPosition {
-    pub span: Span,
-    pub pos: usize,
+    pub span: Span,//位置
+    pub pos: usize,//列位置的索引
     pub name: String,
 }
 
@@ -93,7 +94,7 @@ impl Display for ColumnPosition {
         write!(f, "${}", self.pos)
     }
 }
-
+//表示列的标识符，它可以是名字或位置。
 #[derive(Debug, Clone, PartialEq, Eq, Drive, DriveMut)]
 pub enum ColumnID {
     Name(Identifier),
