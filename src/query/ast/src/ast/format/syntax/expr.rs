@@ -23,7 +23,7 @@ use crate::ast::BinaryOperator;
 use crate::ast::Expr;
 use crate::ast::FunctionCall;
 use crate::ast::MapAccessor;
-
+// 对于各种表达式的解析
 pub(crate) fn pretty_expr(expr: Expr) -> RcDoc<'static> {
     match expr {
         Expr::ColumnRef { column, .. } => if let Some(database) = column.database {

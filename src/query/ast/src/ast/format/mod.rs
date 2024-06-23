@@ -21,7 +21,7 @@ use std::fmt::Display;
 
 pub use ast_format::format_statement;
 pub use syntax::pretty_statement;
-
+// 定义抽象语法树的格式化节点
 #[derive(Clone)]
 pub struct FormatTreeNode<T: Display + Clone = String> {
     pub payload: T,

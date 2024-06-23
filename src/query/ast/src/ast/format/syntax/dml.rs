@@ -31,7 +31,7 @@ use crate::ast::InsertSource;
 use crate::ast::InsertStmt;
 use crate::ast::UpdateExpr;
 use crate::ast::UpdateStmt;
-
+// 对dml语句的解析
 pub(crate) fn pretty_insert(insert_stmt: InsertStmt) -> RcDoc<'static> {
     RcDoc::text("INSERT")
         .append(RcDoc::space())

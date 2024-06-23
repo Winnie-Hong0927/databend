@@ -42,7 +42,7 @@ pub(crate) fn pretty_query(query: Query) -> RcDoc<'static> {
         .append(pretty_offset(query.offset))
         .group()
 }
-
+//格式化查询语句
 fn pretty_with(with: Option<With>) -> RcDoc<'static> {
     if let Some(with) = with {
         RcDoc::text("WITH")

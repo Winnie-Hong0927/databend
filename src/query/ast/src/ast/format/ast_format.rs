@@ -21,6 +21,7 @@ use itertools::Itertools;
 use crate::ast::*;
 use crate::Result;
 use crate::Span;
+//用于格式化AST（抽象语法树）节点
 
 pub fn format_statement(stmt: Statement) -> Result<String> {
     let mut visitor = AstFormatVisitor::new();
@@ -28,7 +29,7 @@ pub fn format_statement(stmt: Statement) -> Result<String> {
     let format_ctx = visitor.children.pop().unwrap();
     format_ctx.format_pretty()
 }
-
+//描述AST节点格式的结构体
 #[derive(Clone)]
 pub struct AstFormatContext {
     name: String,
@@ -86,7 +87,7 @@ impl Display for AstFormatContext {
         }
     }
 }
-
+// 访问AST节点并构建格式化树
 pub struct AstFormatVisitor {
     children: Vec<FormatTreeNode<AstFormatContext>>,
 }
@@ -98,9 +99,13 @@ impl AstFormatVisitor {
 }
 
 impl<'ast> Visitor<'ast> for AstFormatVisitor {
+    //如何访问不同类型的AST节点，并将它们转换为格式化树中的节点。
     fn visit_identifier(&mut self, ident: &'ast Identifier) {
+        //根据分类创建描述AST节点格式的结构体
         let format_ctx = AstFormatContext::new(format!("Identifier {ident}"));
+        //将格式结构体转成AST格式化的节点
         let node = FormatTreeNode::new(format_ctx);
+        //添加到访问子节点上
         self.children.push(node);
     }
 
@@ -3493,6 +3498,7 @@ impl<'ast> Visitor<'ast> for AstFormatVisitor {
 }
 
 impl AstFormatVisitor {
+    //多表查询
     fn visit_multi_table_insert_into_clause<'ast>(
         &'ast mut self,
         clauses: &'ast [IntoClause],

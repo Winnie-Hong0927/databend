@@ -22,7 +22,7 @@ static REGULAR_PREFIX: &str = "├── ";
 static CHILD_PREFIX: &str = "│   ";
 static LAST_REGULAR_PREFIX: &str = "└── ";
 static LAST_CHILD_PREFIX: &str = "    ";
-
+// 将抽象语法数节点格式化
 impl<T> FormatTreeNode<T>
 where T: Display + Clone
 {
