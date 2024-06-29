@@ -43,6 +43,8 @@ pub type IResult<'a, Output> = nom::IResult<Input<'a>, Output, Error<'a>>;
 //rule! 宏用于定义解析规则，使用 nom_rule 库，并结合自定义的 match_text 和 match_token 函数。
 #[macro_export]
 macro_rules! rule {
+    //一个重复的参数模式 $tt，它使用重复模式 $(...)* 来匹配零个或多个标记树（token tree）。tt 是 "token tree" 的缩写，代表Rust代码中的一个片段。
+    //$( ... )* 是一个重复模式，$ 表示这是一个宏替换，而 * 表示这个模式可以重复零次或多次。
     ($($tt:tt)*) => { nom_rule::rule!(
         $crate::parser::match_text,
         $crate::parser::match_token,
@@ -120,17 +122,18 @@ fn plain_identifier(
 ) -> impl FnMut(Input) -> IResult<Identifier> {
     move |i| {
         map(
-            rule! {
-                Ident
-                | #non_reserved_keyword(is_reserved_keyword)
+            rule! {//这里使用了Nom的内联规则语法
+                //#[regex(r#"[_a-zA-Z][_$a-zA-Z0-9]*"#)]
+                Ident//Ident 是一个已经定义好的Nom解析器，用于匹配标识符。
+                | #non_reserved_keyword(is_reserved_keyword)// 是一个自定义的解析操作，它使用 is_reserved_keyword 函数来检查当前的令牌是否不是保留关键字。
             },
-            |token| Identifier {
+            |token| Identifier {//如果 rule! 宏中的解析规则成功，它将被调用，并将 token 转换为 Identifier 类型的对象。
                 span: transform_span(&[token.clone()]),
                 name: token.text().to_string(),
                 quote: None,
                 is_hole: false,
             },
-        )(i)
+        )(i)//闭包定义结束，并使用 i 作为参数调用闭包。
     }
 }
 
@@ -181,6 +184,14 @@ fn identifier_hole(i: Input) -> IResult<Identifier> {
 fn non_reserved_identifier(
     is_reserved_keyword: fn(&TokenKind) -> bool,
 ) -> impl FnMut(Input) -> IResult<Identifier> {
+    /*
+    使用 Nom 的 map 组合器：
+map(
+    rule! { ... },
+    |token| Identifier { ... },
+)(i)
+map 是Nom库中的一个组合器，它将一个解析规则应用于输入，并将其结果映射到另一个类型。如果内部的解析规则成功，map 将应用提供的函数来转换结果。
+    */
     move |i| {
         rule!(
             #plain_identifier(is_reserved_keyword)

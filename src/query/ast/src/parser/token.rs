@@ -128,15 +128,17 @@ impl<'a> Iterator for Tokenizer<'a> {
 
 #[allow(non_camel_case_types)]
 #[derive(Logos, EnumIter, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+// 各种标识符的枚举，主要用于一个模糊匹配
+// 是解析器，使用正则表达式匹配字符串进行解析
 pub enum TokenKind {
     #[error]
     Error,
 
     EOI,
-
+//空格
     #[regex(r"[ \t\r\n\f]+", logos::skip)]
     Whitespace,
-
+// 注解
     #[regex(r"--[^\n\f]*", logos::skip)]
     Comment,
 
