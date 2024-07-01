@@ -3510,11 +3510,8 @@ impl<'ast> Visitor<'ast> for AstFormatVisitor {
 }
 
 impl AstFormatVisitor {
-<<<<<<< HEAD
     //多表插入语句
-=======
     //多表查询
->>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
     fn visit_multi_table_insert_into_clause<'ast>(
         &'ast mut self,
         clauses: &'ast [IntoClause],

@@ -29,14 +29,9 @@ use crate::Result;
 
 pub fn pretty_statement(stmt: Statement, max_width: usize) -> Result<String> {
     let pretty_stmt = match stmt {
-<<<<<<< HEAD
-        // Format and beautify large SQL statements to make them easy to read.
-        //把很长的SQL语句解析成易懂的SQL,pretty_针对不同类型的SQL语句执行特定的格式化逻辑
-=======
         //根据语句的不同选择不同的方式将语句变得可读性更好
         //其中每一个解析器都使用了RcDoc应该是一个格式化工具
         //使用match模式匹配来判断一个语句中包含哪些元素，根据不同的元素拼接不同的SQL语句
->>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
         Statement::Query(query) => pretty_query(*query),
         Statement::Insert(insert_stmt) => pretty_insert(insert_stmt),
         Statement::Delete(delete_stmt) => pretty_delete(delete_stmt),
@@ -62,11 +57,8 @@ pub fn pretty_statement(stmt: Statement, max_width: usize) -> Result<String> {
 }
 
 pub(crate) const NEST_FACTOR: isize = 4;
-<<<<<<< HEAD
 //辅助函数，用于在文档中插入逗号或点，以符合SQL语句的语法要求。
-=======
 //用于在不同的上下文中插入逗号或点，并适当地处理换行和空格。
->>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
 pub(crate) fn interweave_comma<'a, D>(docs: D) -> RcDoc<'a>
 where D: Iterator<Item = RcDoc<'a>> {
     //parenthesized 函数用于将 RcDoc 包装在括号中，这在需要将子句分组时很有用。

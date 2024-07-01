@@ -30,11 +30,7 @@ use crate::ast::CreateTableSource;
 use crate::ast::CreateTableStmt;
 use crate::ast::CreateViewStmt;
 use crate::ast::TimeTravelPoint;
-<<<<<<< HEAD
 //将DDL语句文档化、规范化
-=======
-// ddl语句解析
->>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
 pub(crate) fn pretty_create_table(stmt: CreateTableStmt) -> RcDoc<'static> {
     RcDoc::text("CREATE")
         .append(if let CreateOption::CreateOrReplace = stmt.create_option {

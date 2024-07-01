@@ -23,15 +23,10 @@ use crate::ast::BinaryOperator;
 use crate::ast::Expr;
 use crate::ast::FunctionCall;
 use crate::ast::MapAccessor;
-<<<<<<< HEAD
 //用于将各种类型的SQL表达式转换为易读的字符串表示
 pub(crate) fn pretty_expr
 (expr: Expr) -> RcDoc<'static> {
     //处理列引用。如果列有数据库名，则追加数据库名和点号；如果有表名，则追加表名和点号；最后追加列名。
-=======
-// 对于各种表达式的解析
-pub(crate) fn pretty_expr(expr: Expr) -> RcDoc<'static> {
->>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
     match expr {
         Expr::ColumnRef { column, .. } => if let Some(database) = column.database {
             RcDoc::text(database.to_string()).append(RcDoc::text("."))
