@@ -23,8 +23,11 @@ pub use ast_format::format_statement;
 pub use syntax::pretty_statement;
 // 定义抽象语法树的格式化节点
 #[derive(Clone)]
+//T必须要实现了Display和Clone的trait，默认类型为String
 pub struct FormatTreeNode<T: Display + Clone = String> {
+    //用来存储节点的有效负载，即节点的具体内容，类型为 T。
     pub payload: T,
+    //存储当前节点的子节点
     pub children: Vec<Self>,
 }
 

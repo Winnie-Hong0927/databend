@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+//定义和处理SQL语句
 use std::fmt::Display;
 use std::fmt::Formatter;
 
@@ -33,9 +33,10 @@ use crate::ast::Query;
 // SQL statement
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Drive, DriveMut)]
+//用于表示各种类型的SQL语句
 pub enum Statement {
-    Query(Box<Query>),
-    Explain {
+    Query(Box<Query>),//查询
+    Explain {//explain解释语句，用于描述查询的执行计划
         kind: ExplainKind,
         options: Vec<ExplainOption>,
         query: Box<Statement>,
@@ -43,12 +44,13 @@ pub enum Statement {
     ExplainAnalyze {
         query: Box<Statement>,
     },
-
+    //数据复制到表或位置
     CopyIntoTable(CopyIntoTableStmt),
     CopyIntoLocation(CopyIntoLocationStmt),
 
     Call(CallStmt),
 
+    //显示系统设置、进程列表、指标等的语句
     ShowSettings {
         show_options: Option<ShowOptions>,
     },
@@ -75,11 +77,12 @@ pub enum Statement {
     },
     ShowLocks(ShowLocksStmt),
 
+    //杀死某个查询或连接
     KillStmt {
         kill_target: KillTarget,
         object_id: String,
     },
-
+    //设置和取消设置变量的
     SetVariable {
         is_global: bool,
         variable: Identifier,
@@ -321,7 +324,7 @@ pub enum Statement {
     // System actions
     System(SystemStmt),
 }
-
+//用于对SQL语句中的敏感信息进行掩码处理，然后返回处理后的SQL语句字符串
 impl Statement {
     pub fn to_mask_sql(&self) -> String {
         match self {
@@ -359,7 +362,7 @@ impl Statement {
         }
     }
 }
-
+//用于将Statement枚举中的每个变体转换为字符串格式。这使得可以通过format!宏或其他格式化方法将Statement转换为SQL字符串。
 impl Display for Statement {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {

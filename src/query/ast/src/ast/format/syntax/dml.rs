@@ -31,7 +31,11 @@ use crate::ast::InsertSource;
 use crate::ast::InsertStmt;
 use crate::ast::UpdateExpr;
 use crate::ast::UpdateStmt;
+<<<<<<< HEAD
+// 将dml语句文档化、规范化
+=======
 // 对dml语句的解析
+>>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
 pub(crate) fn pretty_insert(insert_stmt: InsertStmt) -> RcDoc<'static> {
     RcDoc::text("INSERT")
         .append(RcDoc::space())

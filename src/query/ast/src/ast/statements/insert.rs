@@ -29,17 +29,20 @@ use crate::ast::With;
 
 #[derive(Debug, Clone, PartialEq, Drive, DriveMut)]
 pub struct InsertStmt {
+    //提示信息
     pub hints: Option<Hint>,
-    // With clause, common table expression
+    // With字句，公共表表达式
     pub with: Option<With>,
     pub catalog: Option<Identifier>,
     pub database: Option<Identifier>,
     pub table: Identifier,
     pub columns: Vec<Identifier>,
+    //数据源
     pub source: InsertSource,
+    //OVERWRITE还是INSERT插入
     pub overwrite: bool,
 }
-
+//定义输出，就是把插入语句的抽象语法树重新解析成SQL语句
 impl Display for InsertStmt {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         if let Some(cte) = &self.with {
@@ -69,7 +72,7 @@ impl Display for InsertStmt {
         write!(f, " {}", self.source)
     }
 }
-
+// 定义了插入数据的数据源
 #[derive(Debug, Clone, PartialEq, Drive, DriveMut)]
 pub enum InsertSource {
     Streaming {

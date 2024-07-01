@@ -30,6 +30,7 @@ pub fn format_statement(stmt: Statement) -> Result<String> {
     format_ctx.format_pretty()
 }
 //描述AST节点格式的结构体
+>>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
 #[derive(Clone)]
 pub struct AstFormatContext {
     name: String,
@@ -38,6 +39,7 @@ pub struct AstFormatContext {
 }
 
 impl AstFormatContext {
+    //有三种构造方法
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -87,7 +89,11 @@ impl Display for AstFormatContext {
         }
     }
 }
+<<<<<<< HEAD
+// 用于访问AST节点并构建格式化树。它包含一个成员 children，用来存储格式化树的节点。
+=======
 // 访问AST节点并构建格式化树
+>>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
 pub struct AstFormatVisitor {
     children: Vec<FormatTreeNode<AstFormatContext>>,
 }
@@ -97,9 +103,15 @@ impl AstFormatVisitor {
         Self { children: vec![] }
     }
 }
-
+//实现了 Visitor trait，定义了如何访问不同类型的AST节点，并将它们转换为格式化树中的节点。
+//通过 AstFormatContext 描述和格式化不同类型的AST节点。
+// AstFormatVisitor 则负责遍历AST节点，将其转换为格式化树的节点，并最终输出格式化后的字符串表示。
 impl<'ast> Visitor<'ast> for AstFormatVisitor {
+<<<<<<< HEAD
+    //根据不同的节点类型创建对应的 AstFormatContext，并将它们作为 FormatTreeNode 存入 children 中。
+=======
     //如何访问不同类型的AST节点，并将它们转换为格式化树中的节点。
+>>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
     fn visit_identifier(&mut self, ident: &'ast Identifier) {
         //根据分类创建描述AST节点格式的结构体
         let format_ctx = AstFormatContext::new(format!("Identifier {ident}"));
@@ -3498,7 +3510,11 @@ impl<'ast> Visitor<'ast> for AstFormatVisitor {
 }
 
 impl AstFormatVisitor {
+<<<<<<< HEAD
+    //多表插入语句
+=======
     //多表查询
+>>>>>>> 9f586435180eac1d998ef320dfbe6625c0869b2b
     fn visit_multi_table_insert_into_clause<'ast>(
         &'ast mut self,
         clauses: &'ast [IntoClause],

@@ -16,6 +16,8 @@
 #[macro_use]
 extern crate criterion;
 // 从 criterion 库中导入所需的函数和类型。
+//Criterion是一个流行的性能测试库，它提供了一种方式来测量和分析Rust代码的性能。
+//Criterion库允许开发者编写基准测试，这些测试可以精确地测量代码片段的执行时间，并提供了多种工具来帮助分析性能数据。
 use criterion::black_box;
 use criterion::Criterion;
 // 从 databend_common_ast 库中导入 SQL 解析相关的函数和类型。
@@ -34,7 +36,10 @@ fn bench(c: &mut Criterion) {
         // 在每次迭代中运行以下代码。
         b.iter(|| {
             // 定义一个复杂的 SQL 语句。
-            let case = r#"explain SELECT SUM(count) FROM (SELECT ((((((((((((true)and(true)))or((('614')like('998831')))))or(false)))and((true IN (true, true, (-1014651046 NOT BETWEEN -1098711288 AND -1158262473))))))or((('780820706')=('')))) IS NOT NULL AND ((((((((((true)AND(true)))or((('614')like('998831')))))or(false)))and((true IN (true, true, (-1014651046 NOT BETWEEN -1098711288 AND -1158262473))))))OR((('780820706')=(''))))) ::INT64)as count FROM t0) as res;"#;
+            let case = r#"explain SELECT SUM(count) FROM 
+            (SELECT ((((((((((((true)and(true)))or((('614')like('998831')))))or(false)))
+            and((true IN (true, true, (-1014651046 NOT BETWEEN -1098711288 AND -1158262473))))))
+            or((('780820706')=('')))) IS NOT NULL AND ((((((((((true)AND(true)))or((('614')like('998831')))))or(false)))and((true IN (true, true, (-1014651046 NOT BETWEEN -1098711288 AND -1158262473))))))OR((('780820706')=(''))))) ::INT64)as count FROM t0) as res;"#;
             // 将 SQL 语句转换为 tokens（词法分析）
             let tokens = tokenize_sql(case).unwrap();
             // 解析 tokens，生成 SQL 抽象语法树（AST）。

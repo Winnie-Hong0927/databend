@@ -321,6 +321,9 @@ pub fn comma_separated_list1<'a, T>(
 /// A fork of `separated_list0` from nom, but never forgive parser error
 /// after a separator is encountered, and always forgive the first element
 /// failure.
+// 对 nom 库中的 separated_list0 函数的一个变体
+// 解析一个由分隔符分隔的元素列表，通常用于解析诸如逗号分隔的值列表等场景
+// 它总是“原谅”第一个元素的解析失败，允许返回一个空的结果向量。
 pub fn separated_list0<I, O, O2, E, F, G>(
     mut sep: G,
     mut f: F,
@@ -442,6 +445,7 @@ where
 }
 
 /// Try to find an error pattern that user may have made, and hint them with suggestion.
+// 在解析过程中提供错误提示。
 pub fn error_hint<'a, O, F>(
     mut match_error: F,
     message: &'static str,
@@ -471,6 +475,14 @@ pub fn run_pratt_parser<'a, I, P, E>(
     rest: Input<'a>,
     input: Input<'a>,
 ) -> IResult<'a, P::Output>
+// parser 是一个实现了 PrattParser 特性的解析器。
+// iter 是一个迭代器，它产生 parser 需要的输入。
+// rest 是一个 Input 类型，表示解析器尚未处理的输入。
+// input 是一个 Input 类型，表示当前的输入。
+// 函数返回一个 IResult 类型的结果，它包含解析结果和剩余的输入。
+// 提供了一种方式来运行 Pratt 解析器，同时处理可能发生的错误，并给出有用的错误信息。
+// 使用了 nom 的错误处理机制，包括自定义错误类型和错误种类
+// 还考虑了解析过程中的迭代器使用，确保即使在出错时也能正确回溯输入
 where
     E: std::fmt::Debug,
     P: PrattParser<I, Input = WithSpan<'a, E>, Error = &'static str>,
@@ -478,14 +490,15 @@ where
 {
     let mut iter_cloned = iter.clone();
     let mut iter = iter.clone().peekable();
+    // 创建两个迭代器：iter_cloned 和 iter。iter_cloned 用于在出错时回溯输入，iter 用于实际的解析。
     let len = iter.len();
     let expr = parser
-        .parse_input(&mut iter, Precedence(0))
-        .map_err(|err| {
+        .parse_input(&mut iter, Precedence(0))//尝试解析输入，起始优先级为 0。
+        .map_err(|err| {//转换错误，提供更具体的错误信息和处理逻辑
             // Rollback parsing footprint on unused expr elements.
             input.backtrace.clear();
-
-            let err_kind = match err {
+            
+            let err_kind = match err {//根据 PrattParser 产生的错误类型，转换为 nom 的 ErrorKind
                 PrattError::EmptyInput => ErrorKind::Other("expecting more subsequent tokens"),
                 PrattError::UnexpectedNilfix(_) => ErrorKind::Other("unable to parse the element"),
                 PrattError::UnexpectedPrefix(_) => {
@@ -500,7 +513,7 @@ where
                 PrattError::UserError(err) => ErrorKind::Other(err),
             };
 
-            let span = iter_cloned
+            let span = iter_cloned////计算错误发生的位置 span，这有助于提供更精确的错误信息。
                 .nth(len - iter.len() - 1)
                 .map(|elem| elem.span)
                 // It's safe to slice one more token because input must contain EOI.
@@ -508,15 +521,15 @@ where
 
             nom::Err::Error(Error::from_error_kind(span, err_kind))
         })?;
-    if let Some(elem) = iter.peek() {
+    if let Some(elem) = iter.peek() {//如果迭代器中还有元素（iter.peek() 返回 Some），则清除未使用的解析足迹，并返回当前输入和解析结果。
         // Rollback parsing footprint on unused expr elements.
         input.backtrace.clear();
         Ok((input.slice(input.offset(&elem.span)..), expr))
     } else {
-        Ok((rest, expr))
+        Ok((rest, expr))//如果迭代器中没有更多元素，返回剩余的输入和解析结果
     }
 }
-
+// 检查 nom 解析器是否在 SQL 模板模式下运行，并据此决定是否接受解析结果
 pub fn check_template_mode<'a, O, F>(mut parser: F) -> impl FnMut(Input<'a>) -> IResult<'a, O>
 where F: nom::Parser<Input<'a>, O, Error<'a>> {
     move |input: Input| {
@@ -543,9 +556,14 @@ pub fn template_hole(i: Input) -> IResult<(Span, String)> {
         |(span, (_, ident))| (transform_span(span.tokens), ident.name),
     ))(i)
 }
-
+//检查是否启用了特定的实验性 SQL 方言特性。如果启用了实验性方言，它将允许解析器继续解析；如果没有启用，它将返回一个错误。
+// 这个宏可以用于创建函数，这些函数在解析 SQL 语句时检查是否启用了特定的实验性特性。这在开发新特性或方言时非常有用，因为它允许开发者在特性完全稳定之前进行测试。
 macro_rules! declare_experimental_feature {
+    // 这个宏接受两个参数：$check_fn_name 是生成的检查函数的名称，$feature_name 是一个字符串字面量，用于描述实验性特性的名称。
     ($check_fn_name: ident, $feature_name: literal) => {
+//         // 宏内部定义了一个公共函数，这个函数接受一个布尔值 is_exclusive 和一个解析器 parser。
+// is_exclusive 表示如果特性未启用，是否应该完全阻止解析过程。
+// parser 是一个实现了 nom::Parser 特性的泛型解析器。
         pub fn $check_fn_name<'a, O, F>(
             is_exclusive: bool,
             mut parser: F,
@@ -558,8 +576,8 @@ macro_rules! declare_experimental_feature {
                     if input.dialect.is_experimental() {
                         Ok((i, res))
                     } else {
-                        i.backtrace.clear();
-                        let error = Error::from_error_kind(
+                        i.backtrace.clear();//清除输入的回溯信息
+                        let error = Error::from_error_kind(//创建一个错误，指出特性只在实验性方言中有效，并给出如何启用实验性方言的建议
                             input,
                             ErrorKind::Other(
                                 concat!(
@@ -569,9 +587,9 @@ macro_rules! declare_experimental_feature {
                             ),
                         );
                         if is_exclusive {
-                            Err(nom::Err::Failure(error))
+                            Err(nom::Err::Failure(error))//表示解析器不应该继续尝试其他选项
                         } else {
-                            Err(nom::Err::Error(error))
+                            Err(nom::Err::Error(error))//表示解析器可以继续尝试其他选项
                         }
                     }
                 })
