@@ -46,10 +46,17 @@ message OwnershipObject {
     string stage = 1;
   }
 
+  message OwnershipDictionaryObject {
+    string catalog = 1;
+    uint64 db = 2;
+    uint64 dictionary = 3;
+  }
+
   oneof object {
     OwnershipDatabaseObject database = 1;
     OwnershipTableObject table = 2;
     OwnershipUdfObject udf = 3;
     OwnershipStageObject stage = 4;
+    OwnershipDictionaryObject dictionary = 5;
   }
 }

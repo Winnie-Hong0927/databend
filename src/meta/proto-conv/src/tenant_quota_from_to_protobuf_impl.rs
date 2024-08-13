@@ -38,6 +38,7 @@ impl FromToProto for tenant::TenantQuota {
             max_stages: p.max_stages,
             max_files_per_stage: p.max_files_per_stage,
             max_users: p.max_users,
+            max_dictionaries_per_database: p.max_dictionaries_per_database,
         };
         Ok(v)
     }

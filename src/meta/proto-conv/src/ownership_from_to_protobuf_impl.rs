@@ -125,6 +125,17 @@ impl FromToProto for mt::principal::OwnershipObject {
                     stage: name.clone(),
                 }),
             ),
+            mt::principal::OwnershipObject::Dictionary {
+                catalog_name,
+                db_id,
+                dict_id,
+            } => Some(pb::ownership_object::Object::Dictionary(
+                pb::ownership_object::OwnershipDictionaryObject {
+                    catalog: catalog_name.clone(),
+                    db: *db_id,
+                    dictionary: *dict_id,
+                },
+            )),
         };
         Ok(pb::OwnershipObject {
             ver: VER,
