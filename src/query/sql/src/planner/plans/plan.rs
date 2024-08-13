@@ -154,6 +154,10 @@ use crate::plans::VacuumTemporaryFilesPlan;
 use crate::BindContext;
 use crate::MetadataRef;
 
+use super::CreateDictionaryPlan;
+use super::DropDictionaryPlan;
+use super::ShowCreateDictionaryPlan;
+
 #[derive(Clone, Debug)]
 pub enum Plan {
     // `SELECT` statement
@@ -377,6 +381,11 @@ pub enum Plan {
     // sequence
     CreateSequence(Box<CreateSequencePlan>),
     DropSequence(Box<DropSequencePlan>),
+
+    // Dictionary
+    CreateDictionary(Box<CreateDictionaryPlan>),
+    DropDictionary(Box<DropDictionaryPlan>),
+    ShowCreateDictionary(Box<ShowCreateDictionaryPlan>),
 }
 
 #[derive(Clone, Debug)]

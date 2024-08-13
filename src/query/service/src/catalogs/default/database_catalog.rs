@@ -25,11 +25,15 @@ use databend_common_catalog::table_function::TableFunction;
 use databend_common_config::InnerConfig;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
+use databend_common_meta_api::kv_app_error::KVAppError;
+use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
 use databend_common_meta_app::schema::CatalogInfo;
 use databend_common_meta_app::schema::CommitTableMetaReply;
 use databend_common_meta_app::schema::CommitTableMetaReq;
 use databend_common_meta_app::schema::CreateDatabaseReply;
 use databend_common_meta_app::schema::CreateDatabaseReq;
+use databend_common_meta_app::schema::CreateDictionaryReply;
+use databend_common_meta_app::schema::CreateDictionaryReq;
 use databend_common_meta_app::schema::CreateIndexReply;
 use databend_common_meta_app::schema::CreateIndexReq;
 use databend_common_meta_app::schema::CreateLockRevReply;
@@ -43,6 +47,7 @@ use databend_common_meta_app::schema::CreateTableReq;
 use databend_common_meta_app::schema::CreateVirtualColumnReply;
 use databend_common_meta_app::schema::CreateVirtualColumnReq;
 use databend_common_meta_app::schema::DeleteLockRevReq;
+use databend_common_meta_app::schema::DictionaryMeta;
 use databend_common_meta_app::schema::DropDatabaseReply;
 use databend_common_meta_app::schema::DropDatabaseReq;
 use databend_common_meta_app::schema::DropIndexReply;
@@ -59,6 +64,7 @@ use databend_common_meta_app::schema::DroppedId;
 use databend_common_meta_app::schema::ExtendLockRevReq;
 use databend_common_meta_app::schema::GcDroppedTableReq;
 use databend_common_meta_app::schema::GcDroppedTableResp;
+use databend_common_meta_app::schema::GetDictionaryReply;
 use databend_common_meta_app::schema::GetIndexReply;
 use databend_common_meta_app::schema::GetIndexReq;
 use databend_common_meta_app::schema::GetSequenceNextValueReply;
@@ -68,6 +74,7 @@ use databend_common_meta_app::schema::GetSequenceReq;
 use databend_common_meta_app::schema::GetTableCopiedFileReply;
 use databend_common_meta_app::schema::GetTableCopiedFileReq;
 use databend_common_meta_app::schema::IndexMeta;
+use databend_common_meta_app::schema::ListDictionaryReq;
 use databend_common_meta_app::schema::ListDroppedTableReq;
 use databend_common_meta_app::schema::ListIndexesByIdReq;
 use databend_common_meta_app::schema::ListIndexesReq;
@@ -91,6 +98,8 @@ use databend_common_meta_app::schema::UndropDatabaseReq;
 use databend_common_meta_app::schema::UndropTableByIdReq;
 use databend_common_meta_app::schema::UndropTableReply;
 use databend_common_meta_app::schema::UndropTableReq;
+use databend_common_meta_app::schema::UpdateDictionaryReply;
+use databend_common_meta_app::schema::UpdateDictionaryReq;
 use databend_common_meta_app::schema::UpdateIndexReply;
 use databend_common_meta_app::schema::UpdateIndexReq;
 use databend_common_meta_app::schema::UpdateMultiTableMetaReq;
@@ -102,6 +111,7 @@ use databend_common_meta_app::schema::UpsertTableOptionReq;
 use databend_common_meta_app::schema::VirtualColumnMeta;
 use databend_common_meta_app::tenant::Tenant;
 use databend_common_meta_app::KeyWithTenant;
+use databend_common_meta_kvapi::kvapi::KVApi;
 use databend_common_meta_types::MetaId;
 use databend_common_meta_types::SeqV;
 use log::info;
@@ -731,5 +741,46 @@ impl Catalog for DatabaseCatalog {
 
     async fn drop_sequence(&self, req: DropSequenceReq) -> Result<DropSequenceReply> {
         self.mutable_catalog.drop_sequence(req).await
+    }
+
+    /// Dictionary
+    #[async_backtrace::framed]
+    async fn create_dictionary(
+        &self,
+        req: CreateDictionaryReq,
+    ) -> Result<CreateDictionaryReply, KVAppError> {
+        self.mutable_catalog.create_dictionary(req).await
+    }
+
+    #[async_backtrace::framed]
+    async fn update_dictionary(
+        &self,
+        req: UpdateDictionaryReq,
+    ) -> Result<UpdateDictionaryReply, KVAppError> {
+        self.mutable_catalog.update_dictionary(req).await
+    }
+
+    #[async_backtrace::framed]
+    async fn drop_dictionary(
+        &self,
+        dict_ident: TenantDictionaryIdent,
+    ) -> Result<Option<SeqV<DictionaryMeta>>, KVAppError> {
+        self.mutable_catalog.drop_dictionary(dict_ident).await
+    }
+
+    #[async_backtrace::framed]
+    async fn get_dictionary(
+        &self,
+        req: TenantDictionaryIdent,
+    ) -> Result<GetDictionaryReply, KVAppError> {
+        self.mutable_catalog.get_dictionary(req).await
+    }
+
+    #[async_backtrace::framed]
+    async fn list_dictionaries(
+        &self,
+        req: ListDictionaryReq,
+    ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError> {
+        self.mutable_catalog.list_dictionaries(req).await
     }
 }
