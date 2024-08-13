@@ -54,35 +54,26 @@ impl Interpreter for DropDictionaryInterpreter {
         let tenant = self.ctx.get_tenant();
         let db_id = self.plan.database_id;
         let dict_name = self.plan.dictionary.as_str();
-        let catalog = self
-            .ctx
-            .get_catalog(catalog_name)
-            .await?;
+        let catalog = self.ctx.get_catalog(catalog_name).await?;
         let dict_ident = TenantDictionaryIdent::new(
             tenant,
             DictionaryIdentity::new(db_id, dict_name.to_string()),
         );
-        let reply = catalog
-            .drop_dictionary(dict_ident.clone())
-            .await?;
+        let reply = catalog.drop_dictionary(dict_ident.clone()).await?;
 
-        let get_resp = catalog
-            .get_dictionary(dict_ident.clone())
-            .await?;
+        let get_resp = catalog.get_dictionary(dict_ident.clone()).await?;
         let dict_id;
         match get_resp {
             Some(reply) => {
                 dict_id = reply.dictionary_id;
             }
-            None => {
-                Ok(PipelineBuildResult::create())
-            }
+            None => Ok(PipelineBuildResult::create()),
         }
 
         // drop the ownership
         let role_api = UserApiProvider::instance().role_api(&self.plan.tenant);
         let owner_object = OwnershipObject::Dictionary {
-            catalog_name: catalog_name.to_string() ,
+            catalog_name: catalog_name.to_string(),
             db_id,
             dict_id,
         };

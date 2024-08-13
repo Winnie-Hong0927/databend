@@ -17,14 +17,18 @@ use std::sync::Arc;
 use databend_common_exception::ErrorCode;
 use databend_common_meta_app::principal::OwnershipObject;
 use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
-use databend_common_meta_app::schema::{CreateDictionaryReq, DictionaryIdentity, DictionaryMeta, ListDictionaryReq};
+use databend_common_meta_app::schema::CreateDictionaryReq;
+use databend_common_meta_app::schema::DictionaryIdentity;
+use databend_common_meta_app::schema::DictionaryMeta;
+use databend_common_meta_app::schema::ListDictionaryReq;
 use databend_common_sql::plans::CreateDictionaryPlan;
-use databend_common_users::{RoleCacheManager, UserApiProvider};
+use databend_common_users::RoleCacheManager;
+use databend_common_users::UserApiProvider;
 
+use crate::interpreters::Interpreter;
 use crate::pipelines::PipelineBuildResult;
 use crate::sessions::QueryContext;
 use crate::sessions::TableContext;
-use crate::interpreters::Interpreter;
 
 #[derive(Clone, Debug)]
 pub struct CreateDictionaryInterpreter {
@@ -33,10 +37,7 @@ pub struct CreateDictionaryInterpreter {
 }
 
 impl CreateDictionaryInterpreter {
-    pub fn try_create(
-        ctx: Arc<QueryContext>,
-        plan: CreateDictionaryInterpreter
-    ) -> Result<Self> {
+    pub fn try_create(ctx: Arc<QueryContext>, plan: CreateDictionaryInterpreter) -> Result<Self> {
         Ok(CreateDictionaryInterpreter { ctx, plan })
     }
 }
@@ -63,9 +64,7 @@ impl Interpreter for CreateDictionaryInterpreter {
                 tenant: &self.plan.tenant,
                 db_id: self.plan.database_id,
             };
-            let dictionaries = catalog
-                .list_dictionaries(req)
-                .await?;
+            let dictionaries = catalog.list_dictionaries(req).await?;
             if dictionaries.len() >= quota.max_dictionaries_per_database as usize {
                 return Err(Err(ErrorCode::TenantQuotaExceeded(format!(
                     "Max dictionaries per database quota exceeded: {}",
@@ -75,10 +74,8 @@ impl Interpreter for CreateDictionaryInterpreter {
         }
 
         let dictionary_meta = self.plan.meta.clone();
-        let dict_ident = DictionaryIdentity::new(
-            self.plan.database_id,
-            self.plan.dictionary.clone()
-        );
+        let dict_ident =
+            DictionaryIdentity::new(self.plan.database_id, self.plan.dictionary.clone());
         let dictionary_ident = TenantDictionaryIdent::new(tenant, dict_ident);
         let req = CreateDictionaryReq {
             dictionary_ident,

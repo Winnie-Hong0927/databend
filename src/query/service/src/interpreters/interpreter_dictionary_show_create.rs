@@ -27,12 +27,11 @@ use databend_common_meta_app::schema::GetDictionaryReply;
 use databend_common_meta_app::tenant::Tenant;
 use databend_common_sql::plans::ShowCreateDictionaryPlan;
 
+use super::ShowCreateQuerySettings;
 use crate::interpreters::Interpreter;
 use crate::pipelines::PipelineBuildResult;
 use crate::sessions::QueryContext;
 use crate::sessions::TableContext;
-
-use super::ShowCreateQuerySettings;
 
 pub struct ShowCreateDictionaryInterpreter {
     ctx: Arc<QueryContext>,
@@ -46,7 +45,7 @@ pub struct ShowCreateQuerySettings {
 
 impl ShowCreateDictionaryInterpreter {
     pub fn try_create(ctx: Arc<QueryContext>, plan: ShowCreateDictionaryPlan) -> Result<Self> {
-        Ok(ShowCreateDictionaryInterpreter{ ctx, plan })
+        Ok(ShowCreateDictionaryInterpreter { ctx, plan })
     }
 }
 
@@ -79,23 +78,15 @@ impl Interpreter for ShowCreateDictionaryInterpreter {
             quoted_ident_case_sensitive: settings.get_quoted_ident_case_sensitive(),
         };
 
-        let create_query: String = Self::show_create_query(
-            catalog.as_ref(),
-            &dictionary,
-            &dict_name,
-            &settings,
-        )
-        .await?;
+        let create_query: String =
+            Self::show_create_query(catalog.as_ref(), &dictionary, &dict_name, &settings).await?;
         let block = DataBlock::new(
             vec![
-                BlockEntry::new(
-                    DataType::String,
-                    Value::Scalar(Scalar::String(dict_name)),
-                ),
+                BlockEntry::new(DataType::String, Value::Scalar(Scalar::String(dict_name))),
                 BlockEntry::new(
                     DataType::String,
                     Value::Scalar(Scalar::String(create_query)),
-                )
+                ),
             ],
             1,
         );
@@ -183,30 +174,24 @@ impl ShowCreateDictionaryInterpreter {
             for pk_id in pk_id_list {
                 let field: &TableField = &fields[pk_id];
                 let name = field.name;
-                dict_create_sql.push_str(&format!("{},",name));
+                dict_create_sql.push_str(&format!("{},", name));
             }
             dict_create_sql.pop();
             dict_create_sql.push_str(")\n");
         }
         // Append source options.
         {
-            dict_create_sql.push_str(
-                &format!( ") SOURCE({}\n", source)
-            );
+            dict_create_sql.push_str(&format!(") SOURCE({}\n", source));
             dict_create_sql.push_str("(\n");
             for (key, value) in source_options {
-                dict_create_sql.push_str(
-                    &format!(" {}='{}'\n", key, value)
-                );
+                dict_create_sql.push_str(&format!(" {}='{}'\n", key, value));
             }
             dict_create_sql.push_str("))\n")
         }
         // Append comment.
         {
             dict_create_sql.push_str("COMMENT ");
-            dict_create_sql.push_str(
-                &format!("'{}';", comment)
-            );
+            dict_create_sql.push_str(&format!("'{}';", comment));
         }
         Ok(dict_create_sql)
     }

@@ -24,6 +24,9 @@ use databend_common_expression::DataSchema;
 use databend_common_expression::DataSchemaRef;
 use databend_common_expression::DataSchemaRefExt;
 
+use super::CreateDictionaryPlan;
+use super::DropDictionaryPlan;
+use super::ShowCreateDictionaryPlan;
 use crate::binder::ExplainConfig;
 use crate::optimizer::SExpr;
 use crate::plans::copy_into_location::CopyIntoLocationPlan;
@@ -153,10 +156,6 @@ use crate::plans::VacuumTablePlan;
 use crate::plans::VacuumTemporaryFilesPlan;
 use crate::BindContext;
 use crate::MetadataRef;
-
-use super::CreateDictionaryPlan;
-use super::DropDictionaryPlan;
-use super::ShowCreateDictionaryPlan;
 
 #[derive(Clone, Debug)]
 pub enum Plan {

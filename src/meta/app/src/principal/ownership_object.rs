@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fmt::{self, write};
+use std::fmt;
 
-use anyhow::Ok;
 use databend_common_meta_kvapi::kvapi;
 use databend_common_meta_kvapi::kvapi::KeyCodec;
 
@@ -58,7 +57,7 @@ pub enum OwnershipObject {
         catalog_name: String,
         db_id: u64,
         dict_id: u64,
-    }
+    },
 }
 
 impl OwnershipObject {
@@ -91,7 +90,7 @@ impl fmt::Display for OwnershipObject {
                 ref catalog_name,
                 ref db_id,
                 ref dict_id,
-             } => write!(f, "'{}'.'{}'.'{}'", catalog_name, db_id, dict_id),
+            } => write!(f, "'{}'.'{}'.'{}'", catalog_name, db_id, dict_id),
         }
     }
 }
@@ -136,6 +135,7 @@ impl KeyCodec for OwnershipObject {
                 db_id,
                 dict_id,
             } => {
+                let _ = db_id;
                 if catalog_name == Self::DEFAULT_CATALOG {
                     b.push_raw("dictionary-by-id").push_u64(*dict_id)
                 } else {

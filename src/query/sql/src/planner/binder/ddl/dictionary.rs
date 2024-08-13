@@ -24,13 +24,12 @@ use databend_common_expression::DataField;
 use databend_common_expression::DataSchemaRefExt;
 use databend_common_meta_app::schema::DictionaryMeta;
 
+use super::catalog;
 use crate::plans::CreateDictionaryPlan;
 use crate::plans::DropDictionaryPlan;
+use crate::plans::Plan;
 use crate::plans::ShowCreateDictionaryPlan;
 use crate::Binder;
-use crate::plans::Plan;
-
-use super::catalog;
 
 impl Binder {
     #[async_backtrace::framed]
@@ -57,13 +56,13 @@ impl Binder {
         let database_id;
         {
             let catalog = self.ctx.get_catalog(&catalog).await?;
-            let db = catalog
-                .get_database(&tenant, &database).await?;
+            let db = catalog.get_database(&tenant, &database).await?;
             database_id = db.get_db_info().ident.db_id;
         }
 
         let source = self.normalize_object_identifier(source_name);
-        let options: BTreeMap<String, String> = source_options.into_iter()
+        let options: BTreeMap<String, String> = source_options
+            .into_iter()
             .map(|(k, v)| (k.to_lowercase(), v.to_string().to_lowercase()))
             .collect();
 
@@ -116,13 +115,12 @@ impl Binder {
 
         let tenant = self.ctx.get_tenant();
         let (catalog, database, dictionary_name) =
-            self.normalize_object_identifier_triple(catalog, database, dictionary_name); 
+            self.normalize_object_identifier_triple(catalog, database, dictionary_name);
 
         let database_id;
         {
             let catalog = self.ctx.get_catalog(&catalog).await?;
-            let db = catalog
-                .get_database(&tenant, &database).await?;
+            let db = catalog.get_database(&tenant, &database).await?;
             database_id = db.get_db_info().ident.db_id;
         }
         Ok(Plan::DropDictionary(Box::new(DropDictionaryPlan {
@@ -155,16 +153,17 @@ impl Binder {
         let database_id;
         {
             let catalog = self.ctx.get_catalog(&catalog).await?;
-            let db = catalog
-                .get_database(&tenant, &database).await?;
+            let db = catalog.get_database(&tenant, &database).await?;
             database_id = db.get_db_info().ident.db_id;
         }
 
-        Ok(Plan::ShowCreateDictionary(Box::new(ShowCreateDictionaryPlan {
-            catalog,
-            database_id,
-            dictionary: dictionary_name,
-            schema,
-        })))
+        Ok(Plan::ShowCreateDictionary(Box::new(
+            ShowCreateDictionaryPlan {
+                catalog,
+                database_id,
+                dictionary: dictionary_name,
+                schema,
+            },
+        )))
     }
 }
