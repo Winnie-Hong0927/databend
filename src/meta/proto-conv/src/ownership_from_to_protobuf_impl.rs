@@ -90,6 +90,15 @@ impl FromToProto for mt::principal::OwnershipObject {
             pb::ownership_object::Object::Stage(pb::ownership_object::OwnershipStageObject {
                 stage,
             }) => Ok(mt::principal::OwnershipObject::Stage { name: stage }),
+            pb::ownership_object::Object::Dictionary(pb::ownership_object::OwnershipDictionaryObject {
+                catalog,
+                db,
+                dictionary,
+            }) => Ok(mt::principal::OwnershipObject::Dictionary {
+                catalog_name: catalog,
+                db_id: db,
+                dict_id: dictionary,
+            }),
         }
     }
 
