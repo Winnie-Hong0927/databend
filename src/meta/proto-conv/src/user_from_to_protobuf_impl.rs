@@ -20,6 +20,7 @@ use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
+use databend_common_meta_app::schema::catalog;
 use databend_common_meta_app as mt;
 use databend_common_protos::pb;
 use enumflags2::BitFlags;
@@ -193,6 +194,16 @@ impl FromToProto for mt::principal::GrantObject {
             pb::grant_object::Object::Stage(pb::grant_object::GrantStageObject { stage }) => {
                 Ok(mt::principal::GrantObject::Stage(stage))
             }
+            pb::grant_object::Object::Dictionary(pb::grant_object::GrantDictionaryObject {
+                catalog,
+                db,
+                dictionary,
+            }) => Ok(mt::principal::GrantObject::Dictionary(catalog, db, dictionary)),
+            pb::grant_object::Object::DictionaryById(pb::grant_object::GrantDictionaryObject {
+                catalog,
+                db,
+                dictionary,
+            }) => Ok(mt::principal::GrantObject::DictionaryById(catalog, db, dictionary)),
         }
     }
 
@@ -235,6 +246,20 @@ impl FromToProto for mt::principal::GrantObject {
                     stage: stage.clone(),
                 },
             )),
+            mt::principal::GrantObject::Dictionary(catalog, db, dictionary) => Some(
+                pb::grant_object::Object::Dictionary(pb::grant_object::GrantDictionaryObject {
+                    catalog: catalog.clone(),
+                    db: db.clone(),
+                    dictionary: dictionary.clone(),
+                }),
+            ),
+            mt::principal::GrantObject::DictionaryById(catalog, db, dictionary) => Some(
+                pb::grant_object::Object::DictionaryById(pb::grant_object::GrantDictionaryObject {
+                    catalog: catalog.clone(),
+                    db: *db,
+                    dictionary: *dictionary,
+                }),
+            ),
         };
         Ok(pb::GrantObject {
             ver: VER,

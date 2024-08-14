@@ -77,6 +77,18 @@ message GrantObject {
     string stage = 1;
   }
 
+  message GrantDictionaryObject {
+   string catalog = 1;
+   string db = 2;
+   string dictionary = 3;
+  }
+
+  message GrantDictionaryIdObject {
+    string catalog = 1;
+    uint64 db = 2;
+    uint64 dictionary = 3;
+  }
+
   oneof object {
     GrantGlobalObject global = 1;
     GrantDatabaseObject database = 2;
@@ -85,6 +97,8 @@ message GrantObject {
     GrantStageObject stage = 5;
     GrantDatabaseIdObject databasebyid = 6;
     GrantTableIdObject tablebyid = 7;
+    GrantDictionaryObject dictionary = 8;
+    GrantDictionaryIdObject dictionarybyid = 9;
   }
 }
 

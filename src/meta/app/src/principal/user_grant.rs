@@ -20,6 +20,7 @@ use enumflags2::BitFlags;
 
 use crate::principal::UserPrivilegeSet;
 use crate::principal::UserPrivilegeType;
+use crate::schema::ListCatalogReq;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GrantObject {
@@ -30,6 +31,8 @@ pub enum GrantObject {
     TableById(String, u64, u64),
     UDF(String),
     Stage(String),
+    Dictionary(String, String, String),
+    DictionaryById(String, u64, u64),
 }
 
 impl GrantObject {
@@ -62,6 +65,21 @@ impl GrantObject {
             (GrantObject::Table(_, _, _), _) => false,
             (GrantObject::Stage(lstage), GrantObject::Stage(rstage)) => lstage == rstage,
             (GrantObject::UDF(udf), GrantObject::UDF(rudf)) => udf == rudf,
+            (
+                GrantObject::Dictionary(lcat, lhs_db, lhs_dict),
+                GrantObject::Dictionary(rcat, rhs_db, rhs_dict ),
+            ) => lcat == rcat && (lhs_db == rhs_db) && (lhs_dict == rhs_dict),
+            (
+                GrantObject::DictionaryById(lcat, lhs_db, lhs_dict),
+                GrantObject::DictionaryById(rcat, rhs_db, rhs_dict),
+            ) => lcat == rcat && (lhs_db == rhs_db) && (lhs_dict == rhs_dict),
+            (GrantObject::Dictionary(_, _, _), _) => false,
+            (GrantObject::DatabaseById(lcat, ldb), GrantObject::DictionaryById(rcat, rdb, _)) => {
+                lcat == rcat && ldb == rdb
+            }
+            (GrantObject::Database(lcat, ldb), GrantObject::Dictionary(rcat, rdb, _)) => {
+                lcat == rcat && ldb == rdb
+            }
             _ => false,
         }
     }
@@ -82,6 +100,9 @@ impl GrantObject {
             GrantObject::Stage(_) => {
                 UserPrivilegeSet::available_privileges_on_stage(available_ownership)
             }
+            GrantObject::Dictionary(_, _, _) | GrantObject::DictionaryById(_, _, _) => {
+                UserPrivilegeSet::available_privileges_on_dictionary(available_ownership)
+            }
         }
     }
 
@@ -90,6 +111,7 @@ impl GrantObject {
             GrantObject::Global | GrantObject::Stage(_) | GrantObject::UDF(_) => None,
             GrantObject::Database(cat, _) | GrantObject::DatabaseById(cat, _) => Some(cat.clone()),
             GrantObject::Table(cat, _, _) | GrantObject::TableById(cat, _, _) => Some(cat.clone()),
+            GrantObject::Dictionary(cat, _, _) | GrantObject::DictionaryById(cat, _, _) => Some(cat.clone()),
         }
     }
 }
@@ -108,6 +130,12 @@ impl fmt::Display for GrantObject {
             }
             GrantObject::UDF(udf) => write!(f, "UDF {udf}"),
             GrantObject::Stage(stage) => write!(f, "STAGE {stage}"),
+            GrantObject::Dictionary(ref cat, ref db, ref dict) => {
+                write!(f, "'{}'.'{}'.'{}'", cat, db, dict)
+            }
+            GrantObject::DictionaryById(ref cat, ref db, ref dict) => {
+                write!(f, "'{}'.'{}'.'{}'", cat, db, dict)
+            }
         }
     }
 }
