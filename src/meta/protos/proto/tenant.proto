@@ -49,5 +49,5 @@ message TenantQuota {
   uint32 max_users = 5;
 
   // The max dictionaries per database can be created in the tenant.
-  max_dictionaries_per_database = 6；
+  uint32 max_dictionaries_per_database = 6；
 }
