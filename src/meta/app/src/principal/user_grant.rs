@@ -67,7 +67,7 @@ impl GrantObject {
             (GrantObject::UDF(udf), GrantObject::UDF(rudf)) => udf == rudf,
             (
                 GrantObject::Dictionary(lcat, lhs_db, lhs_dict),
-                GrantObject::Dictionary(rcat, rhs_db, rhs_dict ),
+                GrantObject::Dictionary(rcat, rhs_db, rhs_dict),
             ) => lcat == rcat && (lhs_db == rhs_db) && (lhs_dict == rhs_dict),
             (
                 GrantObject::DictionaryById(lcat, lhs_db, lhs_dict),
@@ -111,7 +111,9 @@ impl GrantObject {
             GrantObject::Global | GrantObject::Stage(_) | GrantObject::UDF(_) => None,
             GrantObject::Database(cat, _) | GrantObject::DatabaseById(cat, _) => Some(cat.clone()),
             GrantObject::Table(cat, _, _) | GrantObject::TableById(cat, _, _) => Some(cat.clone()),
-            GrantObject::Dictionary(cat, _, _) | GrantObject::DictionaryById(cat, _, _) => Some(cat.clone()),
+            GrantObject::Dictionary(cat, _, _) | GrantObject::DictionaryById(cat, _, _) => {
+                Some(cat.clone())
+            }
         }
     }
 }
