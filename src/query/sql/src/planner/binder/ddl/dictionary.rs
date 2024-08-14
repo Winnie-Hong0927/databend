@@ -14,19 +14,15 @@
 
 use std::collections::BTreeMap;
 
-use anyhow::Ok;
 use databend_common_ast::ast::CreateDictionaryStmt;
-use databend_common_ast::ast::CreateTableSource;
 use databend_common_ast::ast::DropDictionaryStmt;
 use databend_common_ast::ast::ShowCreateDictionaryStmt;
-use databend_common_catalog::database;
 use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
 use databend_common_expression::DataField;
 use databend_common_expression::DataSchemaRefExt;
 use databend_common_meta_app::schema::DictionaryMeta;
 
-use super::catalog;
 use crate::plans::CreateDictionaryPlan;
 use crate::plans::DropDictionaryPlan;
 use crate::plans::Plan;
@@ -72,6 +68,7 @@ impl Binder {
         for (index, column) in columns.iter().enumerate() {
             fields_comments.push((index as u32, column.comment.clone().unwrap_or_default()));
         }
+        let fields_comments = fields_comments.iter().collect();
 
         let mut primary_column_ids = Vec::new();
         for (index, column) in columns.into_iter().enumerate() {
@@ -87,7 +84,7 @@ impl Binder {
             source,
             options,
             schema,
-            field_comments,
+            field_comments: fields_comments,
             primary_column_ids,
             comment,
             ..Default::default()
@@ -154,6 +151,7 @@ impl Binder {
 
         let database_id;
         {
+            let tenant = self.ctx.get_tenant();
             let catalog = self.ctx.get_catalog(&catalog).await?;
             let db = catalog.get_database(&tenant, &database).await?;
             database_id = db.get_db_info().ident.db_id;

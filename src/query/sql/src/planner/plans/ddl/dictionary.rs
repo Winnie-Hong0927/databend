@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 use databend_common_ast::ast::CreateOption;
 use databend_common_expression::DataSchemaRef;
 use databend_common_meta_app::schema::DictionaryMeta;
+use databend_common_meta_app::tenant::Tenant;
 
 #[derive(Clone, Debug)]
 pub struct CreateDictionaryPlan {
