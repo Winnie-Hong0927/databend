@@ -25,6 +25,7 @@ use databend_common_meta_app::schema::CommitTableMetaReq;
 use databend_common_meta_app::schema::CreateDatabaseReply;
 use databend_common_meta_app::schema::CreateDatabaseReq;
 use databend_common_meta_app::schema::CreateDictionaryReply;
+use databend_common_meta_app::schema::CreateDictionaryReq;
 use databend_common_meta_app::schema::CreateIndexReply;
 use databend_common_meta_app::schema::CreateIndexReq;
 use databend_common_meta_app::schema::CreateLockRevReply;
@@ -513,7 +514,7 @@ impl Catalog for SessionCatalog {
     /// Dictionary
     async fn create_dictionary(
         &self,
-        req: CreateDatabaseReq,
+        req: CreateDictionaryReq,
     ) -> Result<CreateDictionaryReply, KVAppError> {
         self.inner.create_dictionary(req).await
     }

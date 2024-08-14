@@ -16,9 +16,11 @@ use std::collections::BTreeMap;
 
 use anyhow::Ok;
 use databend_common_ast::ast::CreateDictionaryStmt;
+use databend_common_ast::ast::CreateTableSource;
 use databend_common_ast::ast::DropDictionaryStmt;
 use databend_common_ast::ast::ShowCreateDictionaryStmt;
 use databend_common_catalog::database;
+use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
 use databend_common_expression::DataField;
 use databend_common_expression::DataSchemaRefExt;
@@ -79,7 +81,7 @@ impl Binder {
         }
 
         let comment = comment.unwrap_or("".to_string());
-        let (schema, _) = self.analyze_create_table_schema(columns).await?;
+        let (schema, _) = self.analyze_create_table_schema_by_columns(columns).await?;
 
         let meta = DictionaryMeta {
             source,

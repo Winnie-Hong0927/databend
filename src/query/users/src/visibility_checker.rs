@@ -165,7 +165,7 @@ impl GrantObjectVisibilityChecker {
                         extra_databases.insert((catalog.to_string(), db.to_string()));
                     }
                     GrantObject::DictionaryById(catalog, db, dictionary) => {
-                        granted_dictionaries_id((catalog.to_string(), *db, *dictionary));
+                        granted_dictionaries_id.insert((catalog.to_string(), *db, *dictionary));
                         extra_databases_id.insert((catalog.to_string(), *db));
                     }
                 }

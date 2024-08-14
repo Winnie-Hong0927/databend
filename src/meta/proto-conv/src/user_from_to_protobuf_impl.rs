@@ -259,7 +259,7 @@ impl FromToProto for mt::principal::GrantObject {
                 }),
             ),
             mt::principal::GrantObject::DictionaryById(catalog, db, dictionary) => {
-                Some(pb::grant_object::Object::DictionaryById(
+                Some(pb::grant_object::Object::Dictionarybyid(
                     pb::grant_object::GrantDictionaryIdObject {
                         catalog: catalog.clone(),
                         db: *db,

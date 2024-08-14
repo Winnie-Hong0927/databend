@@ -20,7 +20,6 @@ use enumflags2::BitFlags;
 
 use crate::principal::UserPrivilegeSet;
 use crate::principal::UserPrivilegeType;
-use crate::schema::ListCatalogReq;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GrantObject {
