@@ -732,7 +732,7 @@ impl Catalog for ShareCatalog {
     async fn get_dictionary(
         &self,
         _req: TenantDictionaryIdent,
-    ) -> Result<Option<GetDictionaryReply>, KVAppError> {
+    ) -> Result<GetDictionaryReply, KVAppError> {
         unimplemented!()
     }
 

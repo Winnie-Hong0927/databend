@@ -536,7 +536,7 @@ impl Catalog for SessionCatalog {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<Option<GetDictionaryReply>, KVAppError> {
+    ) -> Result<GetDictionaryReply, KVAppError> {
         self.inner.get_dictionary(req).await
     }
 
