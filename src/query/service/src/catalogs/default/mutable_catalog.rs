@@ -696,6 +696,7 @@ impl Catalog for MutableCatalog {
         &self,
         req: TenantDictionaryIdent,
     ) -> Result<GetDictionaryReply, KVAppError> {
+        let reply = self.ctx.meta.get_dictionary(req).await?;
         Ok(self.ctx.meta.get_dictionary(req).await?)
     }
 
@@ -705,5 +706,11 @@ impl Catalog for MutableCatalog {
         req: ListDictionaryReq,
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError> {
         Ok(self.ctx.meta.list_dictionaries(req).await?)
+    }
+
+    #[async_backtrace::framed]
+    async fn get_dict_meta_by_id(&self, dict_id: MetaId) -> Result<Option<SeqV<DictionaryMeta>>> {
+        let res = self.ctx.meta.get_dict_by_id(dict_id).await?;
+        Ok(res)
     }
 }

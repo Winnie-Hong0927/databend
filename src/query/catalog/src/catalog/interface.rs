@@ -492,4 +492,6 @@ pub trait Catalog: DynClone + Send + Sync + Debug {
         &self,
         req: ListDictionaryReq,
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError>;
+
+    async fn get_dict_meta_by_id(&self, dict_id: MetaId) -> Result<Option<SeqV<DictionaryMeta>>>;
 }

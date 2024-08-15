@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use databend_common_catalog::table_context::TableContext;
+use databend_common_catalog::{catalog, table_context::TableContext};
 use databend_common_exception::Result;
 use databend_common_meta_app::{principal::GrantObject, schema::{tenant_dictionary_ident::TenantDictionaryIdent, DictionaryIdentity}};
 use databend_common_users::UserApiProvider;
@@ -108,6 +108,15 @@ pub async fn validate_grant_object_exists(
         }
         GrantObject::DictionaryById(catalog_name, db_id, dict_id) => {
             // TODO
+            let catalog = ctx.get_catalog(catalog_name).await?;
+            if catalog.get_dict_meta_by_id(*dict_id).await?.is_none() {
+                return Err(databend_common_exception::ErrorCode::UnknownDictionaryId(
+                    format!(
+                        "dictionary id `{}`.`{}` not exists in catalog '{}'",
+                        db_id, dict_id, catalog_name,
+                    ),
+                ));
+            }
             return Ok(())
         }
     }

@@ -561,4 +561,9 @@ impl Catalog for ImmutableCatalog {
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError> {
         unimplemented!()
     }
+
+    #[async_backtrace::framed]
+    async fn get_dict_meta_by_id(&self, dict_id: MetaId) -> Result<Option<SeqV<DictionaryMeta>>> {
+        unimplemented!()
+    }
 }

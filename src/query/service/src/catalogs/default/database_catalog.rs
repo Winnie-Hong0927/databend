@@ -771,7 +771,7 @@ impl Catalog for DatabaseCatalog {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<GetDictionaryReply, KVAppError> {//????
+    ) -> Result<GetDictionaryReply, KVAppError> {
         self.mutable_catalog.get_dictionary(req).await
     }
 
@@ -781,5 +781,16 @@ impl Catalog for DatabaseCatalog {
         req: ListDictionaryReq,
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError> {
         self.mutable_catalog.list_dictionaries(req).await
+    }
+
+    #[async_backtrace::framed]
+    async fn get_dict_meta_by_id(&self, dict_id: MetaId) -> Result<Option<SeqV<DictionaryMeta>>> {
+        let res = self.immutable_catalog.get_dict_meta_by_id(dict_id).await;
+
+        if let Ok(x) = res {
+            Ok(x)
+        } else {
+            self.mutable_catalog.get_dict_meta_by_id(table_id).await
+        }
     }
 }

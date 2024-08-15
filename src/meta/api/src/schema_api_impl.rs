@@ -4555,6 +4555,20 @@ impl<KV: kvapi::KVApi<Error = MetaError> + ?Sized> SchemaApi for KV {
         }
         Ok(dict_metas)
     }
+
+    #[logcall::logcall]
+    #[fastrace::trace]
+    async fn get_dict_by_id(
+        &self,
+        dict_id: MetaId,
+    ) -> Result<Option<SeqV<DictionaryMeta>>, MetaError> {
+        debug!(req :? =(&dict_id); "SchemaApi: {}", func_name!());
+
+        let id = DictionaryId { dictionary_id: dict_id };
+
+        let seq_table_meta = self.get_pb(&id).await?;
+        Ok(seq_table_meta)
+    }
 }
 
 async fn construct_drop_virtual_column_txn_operations(

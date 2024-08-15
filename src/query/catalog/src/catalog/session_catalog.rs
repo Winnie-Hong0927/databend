@@ -546,4 +546,8 @@ impl Catalog for SessionCatalog {
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError> {
         self.inner.list_dictionaries(req).await
     }
+
+    async fn get_dict_meta_by_id(&self, dict_id: MetaId) -> Result<Option<SeqV<DictionaryMeta>>> {
+        self.inner.get_dict_meta_by_id(dict_id).await
+    }
 }

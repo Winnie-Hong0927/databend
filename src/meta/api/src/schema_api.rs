@@ -338,4 +338,7 @@ pub trait SchemaApi: Send + Sync {
         &self,
         req: ListDictionaryReq,
     ) -> Result<Vec<(String, DictionaryMeta)>, KVAppError>;
+
+    async fn get_dict_by_id(&self, dict_id: MetaId)
+    -> Result<Option<SeqV<DictionaryMeta>>, MetaError>;
 }
