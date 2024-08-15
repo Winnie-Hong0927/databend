@@ -64,11 +64,10 @@ impl Binder {
             .map(|(k, v)| (k.to_lowercase(), v.to_string().to_lowercase()))
             .collect();
 
-        let mut fields_comments = Vec::with_capacity(columns.len());
+        let mut field_comments = BTreeMap::new();
         for (index, column) in columns.iter().enumerate() {
-            fields_comments.push((index as u32, column.comment.clone().unwrap_or_default()));
+            field_comments.insert(index as u32, column.comment.clone().unwrap_or_default());
         }
-        let fields_comments = fields_comments.iter().collect();
 
         let mut primary_column_ids = Vec::new();
         for (index, column) in columns.into_iter().enumerate() {
@@ -77,14 +76,14 @@ impl Binder {
             }
         }
 
-        let comment = comment.unwrap_or("".to_string());
+        let comment = comment.clone().unwrap_or("".to_string());
         let (schema, _) = self.analyze_create_table_schema_by_columns(columns).await?;
 
         let meta = DictionaryMeta {
             source,
             options,
             schema,
-            field_comments: fields_comments,
+            field_comments ,
             primary_column_ids,
             comment,
             ..Default::default()
@@ -106,7 +105,7 @@ impl Binder {
         stmt: &DropDictionaryStmt,
     ) -> Result<Plan> {
         let DropDictionaryStmt {
-            if_exists,
+            if_exists: _,
             catalog,
             database,
             dictionary_name,

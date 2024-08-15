@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 
+use databend_common_exception::Result;
 use databend_common_management::RoleApi;
 use databend_common_meta_app::principal::OwnershipObject;
 use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
@@ -67,7 +68,9 @@ impl Interpreter for DropDictionaryInterpreter {
             Some(reply) => {
                 dict_id = reply.dictionary_id;
             }
-            None => Ok(PipelineBuildResult::create()),
+            None => {
+                return Ok(PipelineBuildResult::create());
+            }
         }
 
         // drop the ownership

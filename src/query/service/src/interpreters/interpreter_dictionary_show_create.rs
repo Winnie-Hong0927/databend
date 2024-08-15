@@ -17,17 +17,19 @@ use std::sync::Arc;
 use databend_common_ast::ast::quote::display_ident;
 use databend_common_ast::parser::Dialect;
 use databend_common_catalog::catalog::Catalog;
+use databend_common_exception::Result;
+use databend_common_expression::types::DataType;
 use databend_common_expression::BlockEntry;
+use databend_common_expression::ComputedExpr;
+use databend_common_expression::DataBlock;
+use databend_common_expression::Scalar;
 use databend_common_expression::TableField;
 use databend_common_expression::Value;
 use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
 use databend_common_meta_app::schema::DictionaryIdentity;
 use databend_common_meta_app::schema::DictionaryMeta;
-use databend_common_meta_app::schema::GetDictionaryReply;
-use databend_common_meta_app::tenant::Tenant;
 use databend_common_sql::plans::ShowCreateDictionaryPlan;
 
-use super::ShowCreateQuerySettings;
 use crate::interpreters::Interpreter;
 use crate::pipelines::PipelineBuildResult;
 use crate::sessions::QueryContext;
@@ -69,13 +71,18 @@ impl Interpreter for ShowCreateDictionaryInterpreter {
             tenant,
             DictionaryIdentity::new(self.plan.database_id, dict_name),
         );
-        let dictionary = if let Some(reply) = catalog.get_dictionary(dict_ident).await? {
-            reply.dictionary_meta
-        };
+        let dictionary = 
+            if let Some(reply) =
+                catalog.get_dictionary(dict_ident).await?
+            {
+                reply.dictionary_meta
+            } else {
+                return Ok(PipelineBuildResult::create());
+            };
         let settings = self.ctx.get_settings();
         let settings = ShowCreateQuerySettings {
             sql_dialect: settings.get_sql_dialect()?,
-            quoted_ident_case_sensitive: settings.get_quoted_ident_case_sensitive(),
+            quoted_ident_case_sensitive: settings.get_quoted_ident_case_sensitive()?,
         };
 
         let create_query: String =
@@ -109,6 +116,7 @@ impl ShowCreateDictionaryInterpreter {
         let source_options = dictionary.options.clone();
         let comment = dictionary.comment.clone();
         let pk_id_list = dictionary.primary_column_ids.clone();
+        let field_comments = dictionary.field_comments.clone();
 
         let mut dict_create_sql = format!(
             "CREATE DICTIONARY {} (\n",
@@ -146,7 +154,7 @@ impl ShowCreateDictionaryInterpreter {
                     // can not use debug print, will add double quote
                     format!(
                         " COMMENT '{}'",
-                        &field_comments[idx].as_str().replace('\'', "\\'")
+                        comment.as_str(),
                     )
                 } else {
                     "".to_string()

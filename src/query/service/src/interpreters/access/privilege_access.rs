@@ -29,6 +29,9 @@ use databend_common_meta_app::principal::StageType;
 use databend_common_meta_app::principal::UserGrantSet;
 use databend_common_meta_app::principal::UserPrivilegeSet;
 use databend_common_meta_app::principal::UserPrivilegeType;
+use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
+use databend_common_meta_app::schema::DictionaryIdentity;
+use databend_common_meta_app::schema::GetDictionaryReply;
 use databend_common_meta_app::tenant::Tenant;
 use databend_common_meta_types::SeqV;
 use databend_common_sql::binder::MutationType;
@@ -55,6 +58,7 @@ pub struct PrivilegeAccess {
 enum ObjectId {
     Database(u64),
     Table(u64, u64),
+    Dictionary(u64, u64),
 }
 
 // some statements like `SELECT 1`, `SHOW USERS`, `SHOW ROLES`, `SHOW TABLES` will be
@@ -80,6 +84,7 @@ const SYSTEM_TABLES_ALLOW_LIST: [&str; 19] = [
     "user_functions",
     "functions",
     "indexes",
+    "dictionaries",
 ];
 
 // table functions that need `Super` privilege
@@ -175,6 +180,38 @@ impl PrivilegeAccess {
                 name: name.to_string(),
             },
             GrantObject::Global => return Ok(None),
+            GrantObject::Dictionary(catalog_name, db_name, dict_name) => {
+                if db_name.to_lowercase() == "system" {
+                    return Ok(None);
+                }
+                let catalog = self.ctx.get_catalog(catalog_name).await?;
+                let db_id = catalog
+                    .get_database(&tenant, db_name)
+                    .await?
+                    .get_db_info()
+                    .ident
+                    .db_id;
+                let req = TenantDictionaryIdent::new(
+                    tenant.clone(),
+                    DictionaryIdentity::new(db_id, dict_name.clone()),
+                );
+                let reply = catalog.get_dictionary(req).await?;
+                let dict_id;
+                if let Some(reply) = reply {
+                    dict_id = reply.dictionary_id;
+                }
+                OwnershipObject::Dictionary {
+                    catalog_name: catalog_name.clone(),
+                    db_id: *db_id,
+                    dict_id: *dict_id,
+                }
+            }
+            GrantObject::DictionaryById(catalog_name, db_id, dict_id )
+            => OwnershipObject::Dictionary {
+                catalog_name: catalog_name.clone(),
+                db_id: *db_id,
+                dict_id: *dict_id
+            },
         };
 
         Ok(Some(object))
@@ -215,6 +252,7 @@ impl PrivilegeAccess {
                         let (db_id, _) = match obj {
                             ObjectId::Table(db_id, table_id) => (db_id, Some(table_id)),
                             ObjectId::Database(db_id) => (db_id, None),
+                            ObjectId::Dictionary(db_id, dict_id) => (db_id, Some(*dict_id)),
                         };
                         if let Err(err) = self
                             .validate_access(
@@ -330,6 +368,7 @@ impl PrivilegeAccess {
                                 let (db_id, table_id) = match obj {
                                     ObjectId::Table(db_id, table_id) => (db_id, Some(table_id)),
                                     ObjectId::Database(db_id) => (db_id, None),
+                                    ObjectId::Dictionary(db_id, dict_id) => (db_id, Some(dict_id)),
                                 };
                                 // Note: validate_table_access is not used for validate Create Table privilege
                                 if let Err(err) = self
@@ -396,6 +435,108 @@ impl PrivilegeAccess {
         Ok(())
     }
 
+    async fn validate_dictionary_access(
+        &self,
+        catalog_name: &str,
+        db_name: &str,
+        dict_name: &str,
+        privilege: UserPrivilegeType,
+        if_exists: bool,
+    ) -> Result<()> {
+        if (db_name == "system" || db_name == "information_schema")
+            && privilege == UserPrivilegeType::Select
+        {
+            return Ok(());
+        }
+
+        let tenant = self.ctx.get_tenant();
+        match self.ctx.get_catalog(catalog_name).await {
+            Ok(catalog) => {
+                match self
+                    .validate_access(
+                        &GrantObject::Dictionary(
+                            catalog_name.to_string(),
+                            db_name.to_string(),
+                            dict_name.to_string(),
+                        ), 
+                        privilege,
+                        false,
+                        false
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        return Ok(());
+                    }
+                    Err(_err) => {
+                        // get db_id and dict_id
+                        let cat = catalog.clone();
+                        let db_id = cat
+                            .get_database(&tenant, db_name)
+                            .await?
+                            .get_db_info()
+                            .ident
+                            .db_id;
+                        let req = TenantDictionaryIdent::new(
+                            tenant.clone(),
+                            DictionaryIdentity::new(db_id, dict_name.to_string()),
+                        );
+                        let reply = catalog.get_dictionary(req).await?;
+                        let dict_id;
+                        if let Some(reply) = reply {
+                            dict_id = reply.dictionary_id;
+                        }
+                        match self
+                            .validate_access(
+                                &GrantObject::DictionaryById(
+                                    catalog_name.to_string(),
+                                    db_id,
+                                    dict_id,
+                                ),
+                                privilege,
+                                false,
+                                false,
+                            ).await {
+                                Some(_) => {
+                                    return Ok(());
+                                }
+                                Err(err) => {
+                                    if err.code() != ErrorCode::PERMISSION_DENIED {
+                                        return Err(err);
+                                    }
+                                    let current_user = self.ctx.get_current_user()?;
+                                    let session = self.ctx.get_current_session();
+                                    let roles_name = session
+                                        .get_all_effective_roles()
+                                        .await?
+                                        .iter()
+                                        .map(|r| r.name.clone())
+                                        .collect::<Vec<_>>()
+                                        .join(",");
+                                    return Err(ErrorCode::PermissionDenied(format!(
+                                        "Permission denied: privilege [{:?}] is required on '{}'.'{}'.'{}' for user {} with roles [{}]",
+                                        privilege,
+                                        catalog_name,
+                                        db_name,
+                                        dict_name,
+                                        &current_user.identity().display(),
+                                        roles_name,
+                                    )));
+                                }
+                            }
+                    }
+                }
+            }
+            Err(error) => {
+                return if error.code() == ErrorCode::UNKNOWN_CATALOG && if_exists {
+                    Ok(())
+                } else {
+                    Err(error)
+                };
+            }
+        }
+    }
+
     async fn has_ownership(
         &self,
         session: &Arc<Session>,
@@ -460,6 +601,8 @@ impl PrivilegeAccess {
             | GrantObject::UDF(_)
             | GrantObject::Stage(_)
             | GrantObject::TableById(_, _, _) => true,
+            | GrantObject::Dictionary(_, _, _)
+            | GrantObject::DictionaryById(_, _, _) => true,
             GrantObject::Global => false,
         };
 
@@ -507,10 +650,12 @@ impl PrivilegeAccess {
                 match grant_object {
                     GrantObject::TableById(_, _, _) => Err(ErrorCode::PermissionDenied("")),
                     GrantObject::DatabaseById(_, _) => Err(ErrorCode::PermissionDenied("")),
+                    GrantObject::DictionaryById(_, _, _) => Err(ErrorCode::PermissionDenied("")),
                     GrantObject::Global
                     | GrantObject::UDF(_)
                     | GrantObject::Stage(_)
                     | GrantObject::Database(_, _)
+                    | GrantObject::Dictionary(_, _, _)
                     | GrantObject::Table(_, _, _) => Err(ErrorCode::PermissionDenied(format!(
                         "Permission denied: privilege [{:?}] is required on {} for user {} with roles [{}]. \
                         Note: Please ensure that your current role have the appropriate permissions to create a new Database|Table|UDF|Stage.",
@@ -715,6 +860,7 @@ impl AccessChecker for PrivilegeAccess {
                         let (show_db_id, table_id) = match self.convert_to_id(&tenant, &clg, database, None, false).await? {
                             ObjectId::Table(db_id, table_id) => { (db_id, Some(table_id)) }
                             ObjectId::Database(db_id) => { (db_id, None) }
+                            ObjectId::Dictionary(db_id, dict_id) => { (db_id, Some(dict_id)) }
                         };
 
                         if has_priv(&tenant, database, None, show_db_id, table_id, grant_set).await? {
@@ -735,6 +881,7 @@ impl AccessChecker for PrivilegeAccess {
                         let (show_db_id, table_id) = match self.convert_to_id(&tenant, &ctl, database, None, false).await? {
                             ObjectId::Table(db_id, table_id) => { (db_id, Some(table_id)) }
                             ObjectId::Database(db_id) => { (db_id, None) }
+                            ObjectId::Dictionary(db_id, dict_id) => { (db_id, Some(dict_id)) }
                         };
                         if has_priv(&tenant, database, None, show_db_id, table_id, grant_set).await? {
                             return Ok(());
@@ -758,6 +905,7 @@ impl AccessChecker for PrivilegeAccess {
                         let (db_id, table_id) = match self.convert_to_id(&tenant, &catalog, database, Some(table), false).await? {
                             ObjectId::Table(db_id, table_id) => { (db_id, Some(table_id)) }
                             ObjectId::Database(db_id) => { (db_id, None) }
+                            ObjectId::Dictionary(db_id, dict_id) => { (db_id, Some(dict_id)) }
                         };
                         let has_priv = has_priv(&tenant, database, Some(table), db_id, table_id, grant_set).await?;
                         return if has_priv {
@@ -886,6 +1034,7 @@ impl AccessChecker for PrivilegeAccess {
                 let (show_db_id, _) = match self.convert_to_id(&tenant, &ctl, &plan.database, None, false).await? {
                     ObjectId::Table(db_id, table_id) => { (db_id, Some(table_id)) }
                     ObjectId::Database(db_id) => { (db_id, None) }
+                    ObjectId::Dictionary(db_id, dict_id) => { (db_id, Some(dict_id)) }
                 };
                 if has_priv(&tenant, &plan.database, None, show_db_id, None, grant_set).await? {
                     return Ok(());
@@ -998,6 +1147,22 @@ impl AccessChecker for PrivilegeAccess {
             }
             Plan::AnalyzeTable(plan) => {
                 self.validate_table_access(&plan.catalog, &plan.database, &plan.table, UserPrivilegeType::Super, false, false).await?
+            }
+            // Dictionary
+            Plan::ShowCreateDictionary(plan) => {
+                let catalog = self.ctx.get_catalog(plan.catalog.as_str()).await?;
+                let db_name = catalog.get_db_name_by_id(&plan.database_id).await?;
+                self.validate_dictionary_access(&plan.catalog, db_name.as_str(), &plan.dictionary, UserPrivilegeType::Select, false).await?;
+            }
+            Plan::CreateDictionary(plan) => {
+                let catalog = self.ctx.get_catalog(plan.catalog.as_str()).await?;
+                let db_name = catalog.get_db_name_by_id(&plan.database_id).await?;
+                self.validate_db_access(&plan.catalog, db_name.as_str(), UserPrivilegeType::Create, false).await?;
+            }
+            Plan::DropDictionary(plan) => {
+                let catalog = self.ctx.get_catalog(plan.catalog.as_str()).await?;
+                let db_name = catalog.get_db_name_by_id(&plan.database_id).await?;
+                self.validate_dictionary_access(&plan.catalog, db_name.as_str(), &plan.dictionary, UserPrivilegeType::Drop, false).await?;
             }
             // Others.
             Plan::Insert(plan) => {
@@ -1253,6 +1418,7 @@ impl AccessChecker for PrivilegeAccess {
             Plan::Commit => {}
             Plan::Abort => {}
             Plan::ExecuteImmediate(_) => {}
+
         }
 
         Ok(())
@@ -1288,6 +1454,15 @@ fn check_ownership_access(
                     catalog_name,
                     db_id,
                     table_id: _,
+                } => {
+                    if catalog_name == catalog && *db_id == show_db_id {
+                        return Ok(());
+                    }
+                }
+                OwnershipObject::Dictionary {
+                    catalog_name,
+                    db_id,
+                    dict_id,
                 } => {
                     if catalog_name == catalog && *db_id == show_db_id {
                         return Ok(());

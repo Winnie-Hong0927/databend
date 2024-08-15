@@ -32,6 +32,7 @@ use databend_common_meta_app::schema::CommitTableMetaReply;
 use databend_common_meta_app::schema::CommitTableMetaReq;
 use databend_common_meta_app::schema::CreateDatabaseReply;
 use databend_common_meta_app::schema::CreateDatabaseReq;
+use databend_common_meta_app::schema::CreateDictionaryReply;
 use databend_common_meta_app::schema::CreateDictionaryReq;
 use databend_common_meta_app::schema::CreateIndexReply;
 use databend_common_meta_app::schema::CreateIndexReq;
@@ -69,6 +70,7 @@ use databend_common_meta_app::schema::ExtendLockRevReq;
 use databend_common_meta_app::schema::GcDroppedTableReq;
 use databend_common_meta_app::schema::GcDroppedTableResp;
 use databend_common_meta_app::schema::GetDatabaseReq;
+use databend_common_meta_app::schema::GetDictionaryReply;
 use databend_common_meta_app::schema::GetIndexReply;
 use databend_common_meta_app::schema::GetIndexReq;
 use databend_common_meta_app::schema::GetSequenceNextValueReply;
@@ -669,7 +671,7 @@ impl Catalog for MutableCatalog {
     async fn create_dictionary(
         &self,
         req: CreateDictionaryReq,
-    ) -> Result<CreateDatabaseReply, KVAppError> {
+    ) -> Result<CreateDictionaryReply, KVAppError> {
         Ok(self.ctx.meta.create_dictionary(req).await?)
     }
 
@@ -693,7 +695,7 @@ impl Catalog for MutableCatalog {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<Option<DictionaryMeta>, KVAppError> {
+    ) -> Result<GetDictionaryReply, KVAppError> {
         Ok(self.ctx.meta.get_dictionary(req).await?)
     }
 

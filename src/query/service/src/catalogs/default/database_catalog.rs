@@ -111,7 +111,6 @@ use databend_common_meta_app::schema::UpsertTableOptionReq;
 use databend_common_meta_app::schema::VirtualColumnMeta;
 use databend_common_meta_app::tenant::Tenant;
 use databend_common_meta_app::KeyWithTenant;
-use databend_common_meta_kvapi::kvapi::KVApi;
 use databend_common_meta_types::MetaId;
 use databend_common_meta_types::SeqV;
 use log::info;

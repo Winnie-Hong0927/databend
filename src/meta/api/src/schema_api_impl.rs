@@ -4483,7 +4483,7 @@ impl<KV: kvapi::KVApi<Error = MetaError> + ?Sized> SchemaApi for KV {
     async fn get_dictionary(
         &self,
         dictionary_ident: TenantDictionaryIdent,
-    ) -> Result<Option<GetDictionaryReply>, KVAppError> {
+    ) -> Result<GetDictionaryReply, KVAppError> {
         debug!(dict_ident :? =(&dictionary_ident); "SchemaApi: {}", func_name!());
 
         let res = get_dictionary_or_err(self, &dictionary_ident).await?;
@@ -4502,11 +4502,11 @@ impl<KV: kvapi::KVApi<Error = MetaError> + ?Sized> SchemaApi for KV {
             "get_dictionary"
         );
 
-        Ok(Some(GetDictionaryReply {
+        Ok(GetDictionaryReply {
             dictionary_id,
             dictionary_meta,
             dictionary_meta_seq,
-        }))
+        })
     }
 
     #[logcall::logcall]

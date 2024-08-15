@@ -380,6 +380,7 @@ async fn show_account_grants(
     // It will re-write the exists key.
     let mut catalog_db_ids: HashMap<String, Vec<(u64, String)>> = HashMap::new();
     let mut catalog_table_ids: HashMap<String, Vec<(u64, u64, String)>> = HashMap::new();
+    let mut catalog_dict_ids: HashMap<String, Vec<(u64, u64, String)>> = HashMap::new();
 
     for grant_entry in grant_entries {
         let object = grant_entry.object();
@@ -438,6 +439,24 @@ async fn show_account_grants(
                     privileges.push(get_priv_str(&grant_entry));
                     grant_list.push(format!("{} TO {}", grant_entry, identity));
                 }
+                GrantObject::DictionaryById(catalog_name, db_id, dict_id) => {
+                    let privileges_str = get_priv_str(&grant_entry);
+                    if let Some(dicts_id_priv) = catalog_dict_ids.get_mut(catalog_name) {
+                        dicts_id_priv.push((*db_id, *dict_id, privileges_str));
+                    } else {
+                        catalog_dict_ids.insert(catalog_name.clone(), vec![
+                            *db_id,
+                            *dict_id,
+                            privileges_str,
+                        ]);
+                    }
+                }
+                GrantObject::Dictionary(catalog_name, database_name, dict_name) => {
+                    object_name.push(format!("{}.{}.{}", catalog_name, database_name, dict_name));
+                    object_id.push(None);
+                    privileges.push(get_priv_str(&grant_entry));
+                    grant_list.push(format!("{} TO {}", grant_entry, identity));
+                }
             }
         }
     }
@@ -491,6 +510,22 @@ async fn show_account_grants(
                         object_id.push(None);
                         privileges.push("OWNERSHIP".to_string());
                         grant_list.push(format!("GRANT OWNERSHIP ON UDF {} TO {}", name, identity));
+                    }
+                    OwnershipObject::Dictionary {
+                        catalog_name,
+                        db_id,
+                        dict_id,
+                    } => {
+                        let privileges_str = "OWNERSHIP".to_string();
+                        if let Some(dicts_id_priv) = catalog_dict_ids.get_mut(&catalog_name) {
+                            dicts_id_priv.push((db_id, dict_id, privileges_str));
+                        } else {
+                            catalog_dict_ids.insert(catalog_name.clone(), vec![(
+                                db_id,
+                                dict_id,
+                                privileges_str,
+                            )])
+                        }
                     }
                 }
             }

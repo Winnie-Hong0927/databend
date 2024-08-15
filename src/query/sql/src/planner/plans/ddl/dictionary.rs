@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::BTreeMap;
-
 use databend_common_ast::ast::CreateOption;
 use databend_common_expression::DataSchemaRef;
 use databend_common_meta_app::schema::DictionaryMeta;
@@ -43,4 +41,10 @@ pub struct ShowCreateDictionaryPlan {
     pub database_id: u64,
     pub dictionary: String,
     pub schema: DataSchemaRef,
+}
+
+impl ShowCreateDictionaryPlan {
+    pub fn schema(&self) -> DataSchemaRef {
+        self.schema.clone()
+    }
 }

@@ -41,6 +41,7 @@ use databend_common_meta_app::schema::CreateTableReq;
 use databend_common_meta_app::schema::CreateVirtualColumnReply;
 use databend_common_meta_app::schema::CreateVirtualColumnReq;
 use databend_common_meta_app::schema::DeleteLockRevReq;
+use databend_common_meta_app::schema::DictionaryIdentity;
 use databend_common_meta_app::schema::DictionaryMeta;
 use databend_common_meta_app::schema::DropDatabaseReply;
 use databend_common_meta_app::schema::DropDatabaseReq;
@@ -297,6 +298,29 @@ pub trait Catalog: DynClone + Send + Sync + Debug {
             Ok(_) => Ok(true),
             Err(err) => {
                 if err.code() == ErrorCode::UNKNOWN_TABLE {
+                    Ok(false)
+                } else {
+                    Err(err)
+                }
+            }
+        }
+    }
+
+    // Check a db.dictionary is exists or not.
+    #[async_backtrace::framed]
+    async fn exists_dictionary(&self, tenant: &Tenant, db_name: &str, dict_name: &str) -> Result<bool> {
+        let db_id = self
+            .get_database(tenant, db_name)
+            .await?
+            .get_db_info()
+            .ident.db_id;
+        let req = TenantDictionaryIdent::new(
+            tenant,
+            DictionaryIdentity::new(db_id, dict_name.to_string()));
+        match self.get_dictionary(req).await {
+            Ok(_) => Ok(true),
+            Err(err) => {
+                if err.code() == ErrorCode::UNKNOWN_DICTIONARY {
                     Ok(false)
                 } else {
                     Err(err)

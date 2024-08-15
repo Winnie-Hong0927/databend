@@ -15,12 +15,14 @@
 use std::sync::Arc;
 
 use databend_common_exception::ErrorCode;
+use databend_common_exception::Result;
+use databend_common_management::RoleApi;
 use databend_common_meta_app::principal::OwnershipObject;
 use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
 use databend_common_meta_app::schema::CreateDictionaryReq;
 use databend_common_meta_app::schema::DictionaryIdentity;
-use databend_common_meta_app::schema::DictionaryMeta;
 use databend_common_meta_app::schema::ListDictionaryReq;
+use databend_common_meta_types::MatchSeq;
 use databend_common_sql::plans::CreateDictionaryPlan;
 use databend_common_users::RoleCacheManager;
 use databend_common_users::UserApiProvider;
@@ -37,7 +39,7 @@ pub struct CreateDictionaryInterpreter {
 }
 
 impl CreateDictionaryInterpreter {
-    pub fn try_create(ctx: Arc<QueryContext>, plan: CreateDictionaryInterpreter) -> Result<Self> {
+    pub fn try_create(ctx: Arc<QueryContext>, plan: CreateDictionaryPlan) -> Result<Self> {
         Ok(CreateDictionaryInterpreter { ctx, plan })
     }
 }
@@ -60,8 +62,8 @@ impl Interpreter for CreateDictionaryInterpreter {
         let catalog = self.ctx.get_catalog(&self.plan.catalog).await?;
 
         if quota.max_dictionaries_per_database > 0 {
-            let list_dict_req = ListDictionaryReq {
-                tenant: &self.plan.tenant,
+            let req = ListDictionaryReq {
+                tenant: self.plan.tenant.clone(),
                 db_id: self.plan.database_id,
             };
             let dictionaries = catalog.list_dictionaries(req).await?;

@@ -19,6 +19,8 @@ use databend_common_catalog::lock::LockTableOption;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
 use databend_common_sql::binder::ExplainConfig;
+use interpreter_dictionary_create::CreateDictionaryInterpreter;
+use interpreter_dictionary_drop::DropDictionaryInterpreter;
 use log::error;
 
 use super::interpreter_catalog_create::CreateCatalogInterpreter;
@@ -612,6 +614,18 @@ impl InterpreterFactory {
             Plan::System(p) => Ok(Arc::new(SystemActionInterpreter::try_create(
                 ctx,
                 *p.clone(),
+            )?)),
+            // Dictionary
+            Plan::CreateDictionary(create_dictionary) => Ok(Arc::new(CreateDictionaryInterpreter::try_create(
+                ctx,
+                *create_dictionary.clone(),
+            )?)),
+            Plan::ShowCreateDictionary(show_create_table) => Ok(Arc::new(
+                ShowCreateDictionaryInterpreter::try_create(ctx, *show_create_table.clone())?,
+            )),
+            Plan::DropDictionary(drop_dict) => Ok(Arc::new(DropDictionaryInterpreter::try_create(
+                ctx,
+                *drop_dict.clone(),
             )?)),
         }
     }
