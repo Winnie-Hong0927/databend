@@ -771,7 +771,7 @@ impl Catalog for DatabaseCatalog {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<GetDictionaryReply, KVAppError> {
+    ) -> Result<Option<GetDictionaryReply>, KVAppError> {
         self.mutable_catalog.get_dictionary(req).await
     }
 

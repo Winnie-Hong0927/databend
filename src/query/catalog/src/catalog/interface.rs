@@ -486,7 +486,7 @@ pub trait Catalog: DynClone + Send + Sync + Debug {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<GetDictionaryReply, KVAppError>;
+    ) -> Result<Option<GetDictionaryReply>, KVAppError>;
 
     async fn list_dictionaries(
         &self,

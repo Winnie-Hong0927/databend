@@ -695,8 +695,7 @@ impl Catalog for MutableCatalog {
     async fn get_dictionary(
         &self,
         req: TenantDictionaryIdent,
-    ) -> Result<GetDictionaryReply, KVAppError> {
-        let reply = self.ctx.meta.get_dictionary(req).await?;
+    ) -> Result<Option<GetDictionaryReply>, KVAppError> {
         Ok(self.ctx.meta.get_dictionary(req).await?)
     }
 
