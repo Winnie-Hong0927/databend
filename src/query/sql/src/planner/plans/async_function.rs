@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 
+use databend_common_async_functions::AsyncFunctionDesc;
 use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
 
@@ -32,6 +33,7 @@ pub struct AsyncFunction {
     pub arguments: Vec<String>,
     pub return_type: DataType,
     pub index: IndexType,
+    pub async_func_desc: AsyncFunctionDesc,
 }
 
 impl Operator for AsyncFunction {

@@ -16,7 +16,7 @@ use databend_common_exception::Result;
 use databend_common_pipeline_transforms::processors::TransformPipelineHelper;
 use databend_common_sql::executor::physical_plans::AsyncFunction;
 
-use crate::pipelines::processors::transforms::TransformSequenceNextval;
+use crate::pipelines::processors::transforms::{TransformDictGet, TransformSequenceNextval};
 use crate::pipelines::PipelineBuilder;
 
 impl PipelineBuilder {
@@ -28,6 +28,14 @@ impl PipelineBuilder {
                 TransformSequenceNextval::new(
                     self.ctx.clone(),
                     &async_function.arguments[0],
+                    &async_function.return_type,
+                )
+            })
+        } else if async_function.func_name == "dict_get" {
+            self.main_pipeline.add_async_transformer(|| {
+                TransformDictGet::new(
+                    self.ctx.clone(),
+                    &async_function.arguments[1],
                     &async_function.return_type,
                 )
             })

@@ -23,17 +23,21 @@ use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
 use databend_common_expression::types::NumberDataType;
 use databend_common_expression::Scalar;
+use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
+use databend_common_meta_app::schema::DictionaryIdentity;
 use databend_common_meta_app::schema::GetSequenceReq;
 use databend_common_meta_app::schema::SequenceIdent;
 use databend_common_meta_app::tenant::Tenant;
 use educe::Educe;
 
+use crate::dict_async_function::DictGetAsyncFunction;
 use crate::sequence_async_function::SequenceAsyncFunction;
 
 #[derive(Clone, Debug, Educe)]
 #[educe(PartialEq, Eq, Hash)]
-pub enum AsyncFunction {
+pub enum AsyncFunctionDesc {
     SequenceAsyncFunction(SequenceAsyncFunction),
+    DictGetAsyncFunction(DictGetAsyncFunction),
 }
 
 #[derive(Clone, Debug, Educe)]
@@ -46,17 +50,20 @@ pub struct AsyncFunctionCall {
     pub return_type: Box<DataType>,
     pub arguments: Vec<String>,
     pub tenant: Tenant,
-    pub function: AsyncFunction,
+    pub function: AsyncFunctionDesc,
 }
 
-impl AsyncFunction {
+impl AsyncFunctionDesc {
     pub async fn generate(
         &self,
         catalog: Arc<dyn Catalog>,
         async_func: &AsyncFunctionCall,
     ) -> Result<Scalar> {
         match &async_func.function {
-            AsyncFunction::SequenceAsyncFunction(async_function) => {
+            AsyncFunctionDesc::SequenceAsyncFunction(async_function) => {
+                async_function.generate(catalog, async_func).await
+            }
+            AsyncFunctionDesc::DictGetAsyncFunction(async_function) => {
                 async_function.generate(catalog, async_func).await
             }
         }
@@ -72,6 +79,8 @@ pub async fn resolve_async_function(
 ) -> Result<AsyncFunctionCall> {
     if func_name == "nextval" {
         resolve_nextval(span, tenant, catalog, arguments).await
+    } else if func_name == "dict_get" {
+        resolve_dict_get(span, tenant, catalog, arguments).await
     } else {
         Err(ErrorCode::SemanticError(format!(
             "cannot find function {}",
@@ -119,8 +128,76 @@ async fn resolve_nextval(
         return_type: Box::new(DataType::Number(NumberDataType::UInt64)),
         arguments: vec![sequence_name],
         tenant,
-        function: AsyncFunction::SequenceAsyncFunction(SequenceAsyncFunction {}),
+        function: AsyncFunctionDesc::SequenceAsyncFunction(SequenceAsyncFunction {}),
     };
 
     Ok(table_func)
+}
+
+async fn resolve_dict_get(
+    span: Span,
+    tenant: Tenant,
+    catalog: Arc<dyn Catalog>,
+    arguments: &[&Expr],
+) -> Result<AsyncFunctionCall> {
+    if arguments.len() != 2 {
+        return Err(ErrorCode::SemanticError(format!(
+            "dict_get function need two arguments but got {}",
+            arguments.len()
+        )));
+    }
+    let db_name = if let Expr::ColumnRef { column, .. } = arguments[0] {
+        if let ColumnID::Name(name) = &column.column {
+            name.name.clone()
+        } else {
+            return Err(ErrorCode::SemanticError(
+                "async function can only used as column".to_string(),
+            ));
+        }
+    } else {
+        return Err(ErrorCode::SemanticError(
+            "async function can only used as column".to_string(),
+        ));
+    };
+    let dict_name = if let Expr::ColumnRef { column, .. } = arguments[1] {
+        if let ColumnID::Name(name) = &column.column {
+            name.name.clone()
+        } else {
+            return Err(ErrorCode::SemanticError(
+                "async function can only used as column".to_string(),
+            ));
+        }
+    } else {
+        return Err(ErrorCode::SemanticError(
+            "async function can only used as column".to_string(),
+        ));
+    };
+    let db_id = catalog
+        .get_database(&tenant, db_name.as_str())
+        .await?
+        .get_db_info()
+        .database_id
+        .db_id;
+    let req = TenantDictionaryIdent::new(
+        tenant.clone(),
+        DictionaryIdentity::new(db_id, dict_name.clone()),
+    );
+    let _ = catalog.get_dictionary(req).await?;
+    let dict_get_func = DictGetAsyncFunction {
+        tenant: tenant.clone(),
+        catalog: catalog.name(),
+        db_name: db_name.clone(),
+        dict_name: dict_name.clone(),
+    };
+    let dict_func = AsyncFunctionCall {
+        span,
+        func_name: "dict_get".to_string(),
+        display_name: format!("dict_get({},{})", db_name.clone(), dict_name.clone()),
+        return_type: Box::new(DataType::Number(NumberDataType::UInt64)),
+        arguments: vec![db_name.clone(), dict_name.clone()],
+        tenant,
+        function: AsyncFunctionDesc::DictGetAsyncFunction(dict_get_func),
+    };
+
+    Ok(dict_func)
 }

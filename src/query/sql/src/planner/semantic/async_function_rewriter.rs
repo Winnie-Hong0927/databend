@@ -108,6 +108,7 @@ impl AsyncFunctionRewriter {
                 display_name: func.display_name.clone(),
                 return_type: func.return_type.as_ref().clone(),
                 index: *index,
+                async_func_desc: func.function.clone(),
             };
 
             child_expr = Arc::new(SExpr::create_unary(Arc::new(async_func.into()), child_expr))
