@@ -16,7 +16,8 @@ use databend_common_exception::Result;
 use databend_common_pipeline_transforms::processors::TransformPipelineHelper;
 use databend_common_sql::executor::physical_plans::AsyncFunction;
 
-use crate::pipelines::processors::transforms::{TransformDictGet, TransformSequenceNextval};
+use crate::pipelines::processors::transforms::TransformDictGet;
+use crate::pipelines::processors::transforms::TransformSequenceNextval;
 use crate::pipelines::PipelineBuilder;
 
 impl PipelineBuilder {
