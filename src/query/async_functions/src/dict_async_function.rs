@@ -53,13 +53,11 @@ impl DictGetAsyncFunction {
         let req = TenantDictionaryIdent::new(tenant, DictionaryIdentity::new(db_id, dict_name));
         let reply = catalog.get_dictionary(req).await?;
         match reply {
-            Some(r) => return Ok(Scalar::Number(NumberScalar::UInt64(r.dictionary_id))),
-            None => {
-                return Err(ErrorCode::UnknownDictionary(format!(
-                    "Unknown Dictionary {}",
-                    dict_name,
-                )));
-            }
+            Some(r) => Ok(Scalar::Number(NumberScalar::UInt64(r.dictionary_id))),
+            None => Err(ErrorCode::UnknownDictionary(format!(
+                "Unknown Dictionary {}",
+                dict_name,
+            ))),
         }
     }
 }

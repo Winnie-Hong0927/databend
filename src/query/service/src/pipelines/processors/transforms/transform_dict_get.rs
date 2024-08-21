@@ -71,9 +71,7 @@ impl AsyncTransform for TransformDictGet {
         let reply = catalog.get_dictionary(req).await?;
         match reply {
             Some(r) => {
-                let mut vec = Vec::new();
-                vec.push(r.dictionary_id);
-                vec.push(r.dictionary_meta_seq);
+                let vec = vec![r.dictionary_id, r.dictionary_meta_seq];
                 let value = UInt64Type::from_data(vec);
                 let entry = BlockEntry {
                     data_type: self.return_type.clone(),
