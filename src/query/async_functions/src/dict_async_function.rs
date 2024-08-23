@@ -12,26 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
 use databend_common_ast::ast::Expr;
-use databend_common_catalog::catalog::Catalog;
-use databend_common_exception::ErrorCode;
-use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
-use databend_common_expression::types::NumberScalar;
-use databend_common_expression::Scalar;
-use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
-use databend_common_meta_app::schema::DictionaryIdentity;
-use databend_common_meta_app::tenant::Tenant;
-use educe::Educe;
 
-use crate::AsyncFunctionCall;
-
-#[derive(Clone, Debug, Educe)]
-#[educe(PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub struct DictGetAsyncFunction {
-    pub dict_name: Expr::ColumnRef,
+    pub dict_name: Expr,
     pub field: Expr,
     pub pk_ids: Expr,
     pub return_type: Box<DataType>,

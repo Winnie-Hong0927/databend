@@ -12,20 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
 use databend_common_ast::ast::ColumnID;
 use databend_common_ast::ast::Expr;
 use databend_common_ast::Span;
 use databend_common_catalog::catalog::Catalog;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
-use databend_common_expression::type_check;
 use databend_common_expression::types::DataType;
 use databend_common_expression::types::NumberDataType;
 use databend_common_expression::Scalar;
-use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
-use databend_common_meta_app::schema::DictionaryIdentity;
 use databend_common_meta_app::schema::GetSequenceReq;
 use databend_common_meta_app::schema::SequenceIdent;
 use databend_common_meta_app::tenant::Tenant;
@@ -64,7 +59,7 @@ impl AsyncFunctionDesc {
             AsyncFunctionDesc::SequenceAsyncFunction(async_function) => {
                 async_function.generate(catalog, async_func).await
             }
-            AsyncFunctionDesc::DictGetAsyncFunction(async_function) => {
+            AsyncFunctionDesc::DictGetAsyncFunction(_async_function) => {
                 unimplemented!()
             }
         }
@@ -80,8 +75,6 @@ pub async fn resolve_async_function(
 ) -> Result<AsyncFunctionCall> {
     if func_name == "nextval" {
         resolve_nextval(span, tenant, catalog, arguments).await
-    } else if func_name == "dict_get" {
-        resolve_dict_get(span, tenant, catalog, arguments).await
     } else {
         Err(ErrorCode::SemanticError(format!(
             "cannot find function {}",
