@@ -14,9 +14,11 @@
 
 use std::sync::Arc;
 
+use databend_common_ast::ast::Expr;
 use databend_common_catalog::catalog::Catalog;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
+use databend_common_expression::types::DataType;
 use databend_common_expression::types::NumberScalar;
 use databend_common_expression::Scalar;
 use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
@@ -29,35 +31,8 @@ use crate::AsyncFunctionCall;
 #[derive(Clone, Debug, Educe)]
 #[educe(PartialEq, Eq, Hash)]
 pub struct DictGetAsyncFunction {
-    pub dict_name: String,
-    pub db_name: String,
-    pub catalog: String,
-    pub tenant: Tenant,
-}
-
-impl DictGetAsyncFunction {
-    pub async fn generate(
-        &self,
-        catalog: Arc<dyn Catalog>,
-        async_func: &AsyncFunctionCall,
-    ) -> Result<Scalar> {
-        let tenant = &async_func.tenant;
-        let db_name = &async_func.arguments[0];
-        let db_id = catalog
-            .get_database(tenant, db_name)
-            .await?
-            .get_db_info()
-            .database_id
-            .db_id;
-        let dict_name = &async_func.arguments[1];
-        let req = TenantDictionaryIdent::new(tenant, DictionaryIdentity::new(db_id, dict_name));
-        let reply = catalog.get_dictionary(req).await?;
-        match reply {
-            Some(r) => Ok(Scalar::Number(NumberScalar::UInt64(r.dictionary_id))),
-            None => Err(ErrorCode::UnknownDictionary(format!(
-                "Unknown Dictionary {}",
-                dict_name,
-            ))),
-        }
-    }
+    pub dict_name: Expr::ColumnRef,
+    pub field: Expr,
+    pub pk_ids: Expr,
+    pub return_type: Box<DataType>,
 }

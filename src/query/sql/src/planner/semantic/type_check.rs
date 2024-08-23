@@ -19,6 +19,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::vec;
 
+use cron::error::Error;
 use databend_common_ast::ast::BinaryOperator;
 use databend_common_ast::ast::ColumnID;
 use databend_common_ast::ast::ColumnRef;
@@ -46,7 +47,12 @@ use databend_common_ast::parser::parse_expr;
 use databend_common_ast::parser::tokenize_sql;
 use databend_common_ast::parser::Dialect;
 use databend_common_ast::Span;
+use databend_common_async_functions::dict_async_function;
+use databend_common_async_functions::dict_async_function::DictGetAsyncFunction;
 use databend_common_async_functions::resolve_async_function;
+use databend_common_async_functions::AsyncFunctionCall;
+use databend_common_async_functions::AsyncFunctionDesc;
+use databend_common_catalog::catalog::Catalog;
 use databend_common_catalog::catalog::CatalogManager;
 use databend_common_catalog::plan::InternalColumn;
 use databend_common_catalog::plan::InternalColumnType;
@@ -94,6 +100,9 @@ use databend_common_meta_app::principal::LambdaUDF;
 use databend_common_meta_app::principal::UDFDefinition;
 use databend_common_meta_app::principal::UDFScript;
 use databend_common_meta_app::principal::UDFServer;
+use databend_common_meta_app::schema::tenant_dictionary_ident::TenantDictionaryIdent;
+use databend_common_meta_app::schema::DictionaryIdentity;
+use databend_common_meta_app::tenant::Tenant;
 use databend_common_storage::init_stage_operator;
 use databend_common_users::UserApiProvider;
 use derive_visitor::Drive;
@@ -4119,6 +4128,143 @@ impl<'a> TypeChecker<'a> {
                 arguments: args,
             }),
             DataType::Nullable(Box::new(DataType::Variant)),
+        )))
+    }
+
+    fn resolve_dict_get(
+        &mut self,
+        span: Span,
+        tenant: Tenant,
+        catalog: Arc<dyn Catalog>,
+        args: &[&Expr],
+    ) -> Result<Box<(ScalarExpr, DataType)>> {
+        if arguments.len() != 3 {
+            return Err(ErrorCode::SemanticError(format!(
+                "dict_get function need three arguments but got {}",
+                arguments.len()
+            ))
+            .set_span(span));
+        }
+
+        let dict_name = args[0];
+        let field = args[1];
+        let pk_ids = args[2];
+
+        let dict_name = if let Expr::ColumnRef { column, .. } = dict_name {
+            if let ColumnID::Name(name) = &column.column {
+                name.name.clone()
+            } else {
+                return Err(ErrorCode::SemanticError(
+                    "async function can only used as column".to_string(),
+                )
+                .set_span(dict_name.span()));
+            }
+        } else {
+            return Err(ErrorCode::SemanticError(
+                "async function can only used as column".to_string(),
+            )
+            .set_span(dict_name.span()));
+        };
+        let db_name = self.ctx.get_current_database();
+        let db_id = catalog
+            .get_database(&tenant, db_name.as_str())
+            .await?
+            .get_db_info()
+            .database_id
+            .db_id;
+        let req = TenantDictionaryIdent::new(
+            tenant.clone(),
+            DictionaryIdentity::new(db_id, dict_name.clone()),
+        );
+        let reply = catalog.get_dictionary(req).await?;
+        let dictionary = if let Some(r) = reply {
+            r.dictionary_meta
+        } else {
+            return Err(ErrorCode::UnknownDictionary(format!(
+                "Unkown dictionary {}",
+                dict_name.clone(),
+            )));
+        };
+        let schema = dictionary.schema;
+
+        let box (field_scalar, field_data_type) = self.resolve(field)?;
+        let Ok(field_expr) = ConstantExpr::try_from(field_scalar.clone()) else {
+            return Err(ErrorCode::SemanticError(format!(
+                "invalid arguments for dict_get function, attr_names must be a constant string, but got {}",
+                field
+            ))
+            .set_span(field_scalar.span()));
+        };
+        let Some(field_text) = field_expr.value.as_string() else {
+            return Err(ErrorCode::SemanticError(format!(
+                "invalid arguments for dict_get function, attr_names must be a constant string, but got {}",
+                field
+            ))
+            .set_span(field_scalar.span()));
+        };
+        let attr_names: Vec<&str> = field_text.split(',').collect();
+        let mut attribute_types = Vec::new();
+        for attr_name in attr_names {
+            let attr_index = schema.index_of(attr_name)?;
+            let attr = schema.field(attr_index);
+            attribute_types.push(attr.data_type);
+        }
+        let return_type = Box::new(DataType::Tuple(attribute_types.clone()));
+
+        let box (pk_ids_scalar, pk_ids_data_type) = self.resolve(pk_ids)?;
+        let Ok(pk_ids_expr) = ConstantExpr::try_from(pk_ids_scalar.clone()) else {
+            return Err(ErrorCode::SemanticError(format!(
+                "invalid arguments for dict_get function, id_exprs must be a constant string, but got {}",
+                pk_ids
+            )));
+        };
+        let Some(pk_ids_text) = pk_ids_expr.value.as_string() else {
+            return Err(ErrorCode::SemanticError(format!(
+                "invalid arguments for dict_get function, id_exprs must be a constant string, but got {}",
+                pk_ids
+            )));
+        };
+        let DataType::Tuple(pk_ids_types) = pk_ids_data_type else {
+            return Err(ErrorCode::SemanticError(format!(
+                "invalid arguments for dict_get function, id_expr must be a tuple, but got {}",
+                pk_ids
+            ))
+            .set_span(pk_ids_scalar.span()));
+        };
+        let pk_types = Vec::new();
+        let primary_column_ids = dictionary.primary_column_ids;
+        for primary_column_id in primary_column_ids {
+            let primary_key_field = schema.field(primary_column_id as usize);
+            pk_types.push(primary_key_field.data_type);
+        }
+        if !pk_ids_types
+            .iter()
+            .zip(pk_types.iter())
+            .all(|(a, b)| a == b)
+        {
+            return Err(ErrorCode::SemanticError(
+                "the input primary key types do not match the primary key types in the dictionary",
+            )
+            .set_span(pk_ids_scalar.span()));
+        }
+
+        let dict_async_function = DictGetAsyncFunction {
+            dict_name: dict_name.clone(),
+            field,
+            pk_ids,
+            return_type: return_type.clone(),
+        };
+        Ok(Box::new((
+            ScalarExpr::AsyncFunctionCall(AsyncFunctionCall {
+                span,
+                func_name: "dict_get".to_string(),
+                display_name: format!("dict_get({},({}),({}))", dict_name, field_text, pk_ids_text),
+                return_type: return_type.clone(),
+                arguments: vec![field_text, pk_ids_text],
+                tenant,
+                function: AsyncFunctionDesc::DictGetAsyncFunction(dict_async_function),
+            }),
+            DataType::Tuple(attribute_types.clone()),
         )))
     }
 

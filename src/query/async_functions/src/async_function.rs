@@ -20,6 +20,7 @@ use databend_common_ast::Span;
 use databend_common_catalog::catalog::Catalog;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
+use databend_common_expression::type_check;
 use databend_common_expression::types::DataType;
 use databend_common_expression::types::NumberDataType;
 use databend_common_expression::Scalar;
@@ -64,7 +65,7 @@ impl AsyncFunctionDesc {
                 async_function.generate(catalog, async_func).await
             }
             AsyncFunctionDesc::DictGetAsyncFunction(async_function) => {
-                async_function.generate(catalog, async_func).await
+                unimplemented!()
             }
         }
     }
@@ -132,72 +133,4 @@ async fn resolve_nextval(
     };
 
     Ok(table_func)
-}
-
-async fn resolve_dict_get(
-    span: Span,
-    tenant: Tenant,
-    catalog: Arc<dyn Catalog>,
-    arguments: &[&Expr],
-) -> Result<AsyncFunctionCall> {
-    if arguments.len() != 2 {
-        return Err(ErrorCode::SemanticError(format!(
-            "dict_get function need two arguments but got {}",
-            arguments.len()
-        )));
-    }
-    let db_name = if let Expr::ColumnRef { column, .. } = arguments[0] {
-        if let ColumnID::Name(name) = &column.column {
-            name.name.clone()
-        } else {
-            return Err(ErrorCode::SemanticError(
-                "async function can only used as column".to_string(),
-            ));
-        }
-    } else {
-        return Err(ErrorCode::SemanticError(
-            "async function can only used as column".to_string(),
-        ));
-    };
-    let dict_name = if let Expr::ColumnRef { column, .. } = arguments[1] {
-        if let ColumnID::Name(name) = &column.column {
-            name.name.clone()
-        } else {
-            return Err(ErrorCode::SemanticError(
-                "async function can only used as column".to_string(),
-            ));
-        }
-    } else {
-        return Err(ErrorCode::SemanticError(
-            "async function can only used as column".to_string(),
-        ));
-    };
-    let db_id = catalog
-        .get_database(&tenant, db_name.as_str())
-        .await?
-        .get_db_info()
-        .database_id
-        .db_id;
-    let req = TenantDictionaryIdent::new(
-        tenant.clone(),
-        DictionaryIdentity::new(db_id, dict_name.clone()),
-    );
-    let _ = catalog.get_dictionary(req).await?;
-    let dict_get_func = DictGetAsyncFunction {
-        tenant: tenant.clone(),
-        catalog: catalog.name(),
-        db_name: db_name.clone(),
-        dict_name: dict_name.clone(),
-    };
-    let dict_func = AsyncFunctionCall {
-        span,
-        func_name: "dict_get".to_string(),
-        display_name: format!("dict_get({},{})", db_name.clone(), dict_name.clone()),
-        return_type: Box::new(DataType::Number(NumberDataType::UInt64)),
-        arguments: vec![db_name.clone(), dict_name.clone()],
-        tenant,
-        function: AsyncFunctionDesc::DictGetAsyncFunction(dict_get_func),
-    };
-
-    Ok(dict_func)
 }
