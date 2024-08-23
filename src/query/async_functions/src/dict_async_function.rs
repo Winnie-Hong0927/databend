@@ -15,10 +15,11 @@
 use databend_common_ast::ast::Expr;
 use databend_common_expression::types::DataType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Educe)]
+#[educe(PartialEq, Eq, Hash)]
 pub struct DictGetAsyncFunction {
-    pub dict_name: Expr,
-    pub field: Expr,
-    pub pk_ids: Expr,
+    pub dict_name: String,
+    pub fields: Vec<&str>,
+    pub pk_ids: Vec<&str>,
     pub return_type: Box<DataType>,
 }

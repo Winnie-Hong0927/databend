@@ -4150,6 +4150,7 @@ impl<'a> TypeChecker<'a> {
         let field = args[1];
         let pk_ids = args[2];
 
+        // Get dict_name and dict_meta.
         let dict_name = if let Expr::ColumnRef { column, .. } = dict_name {
             if let ColumnID::Name(name) = &column.column {
                 name.name.clone()
@@ -4186,7 +4187,7 @@ impl<'a> TypeChecker<'a> {
             )));
         };
         let schema = dictionary.schema;
-
+        // Get attr_names attr_types and return_type.
         let box (field_scalar, field_data_type) = self.resolve(field)?;
         let Ok(field_expr) = ConstantExpr::try_from(field_scalar.clone()) else {
             return Err(ErrorCode::SemanticError(format!(
@@ -4210,7 +4211,7 @@ impl<'a> TypeChecker<'a> {
             attribute_types.push(attr.data_type);
         }
         let return_type = Box::new(DataType::Tuple(attribute_types.clone()));
-
+        // Get primary_key_values and check primary_key_ids' types.
         let box (pk_ids_scalar, pk_ids_data_type) = self.resolve(pk_ids)?;
         let Ok(pk_ids_expr) = ConstantExpr::try_from(pk_ids_scalar.clone()) else {
             return Err(ErrorCode::SemanticError(format!(
@@ -4224,6 +4225,8 @@ impl<'a> TypeChecker<'a> {
                 pk_ids
             )));
         };
+        let pk_ids_values: Vec<&str> = pk_ids_text.split(',').collect();
+
         let DataType::Tuple(pk_ids_types) = pk_ids_data_type else {
             return Err(ErrorCode::SemanticError(format!(
                 "invalid arguments for dict_get function, id_expr must be a tuple, but got {}",
@@ -4250,8 +4253,8 @@ impl<'a> TypeChecker<'a> {
 
         let dict_async_function = DictGetAsyncFunction {
             dict_name: dict_name.clone(),
-            field,
-            pk_ids,
+            fields: attr_names,
+            pk_ids: pk_ids_values,
             return_type: return_type.clone(),
         };
         Ok(Box::new((
@@ -4264,7 +4267,7 @@ impl<'a> TypeChecker<'a> {
                 tenant,
                 function: AsyncFunctionDesc::DictGetAsyncFunction(dict_async_function),
             }),
-            DataType::Tuple(attribute_types.clone()),
+            DataType::Tuple(attribute_types.clone()), // return_type
         )))
     }
 
