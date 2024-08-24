@@ -16,6 +16,7 @@ pub mod async_function;
 pub mod dict_async_function;
 pub mod sequence_async_function;
 pub mod opendal_test;
+pub mod opendal_test_redis;
 
 pub use async_function::resolve_async_function;
 pub use async_function::AsyncFunctionCall;
