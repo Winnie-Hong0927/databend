@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use databend_common_ast::ast::Expr;
-use databend_common_expression::types::DataType;
+use databend_common_expression::{types::DataType, Column};
 
 #[derive(Clone, Debug, Educe)]
 #[educe(PartialEq, Eq, Hash)]
 pub struct DictGetAsyncFunction {
     pub dict_name: String,
     pub fields: Vec<&str>,
-    pub pk_ids: Vec<&str>,
+    pub pk_ids: Column,
     pub return_type: Box<DataType>,
 }

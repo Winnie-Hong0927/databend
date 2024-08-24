@@ -4250,7 +4250,7 @@ impl<'a> TypeChecker<'a> {
             )
             .set_span(pk_ids_scalar.span()));
         }
-
+        schema;
         let dict_async_function = DictGetAsyncFunction {
             dict_name: dict_name.clone(),
             fields: attr_names,
