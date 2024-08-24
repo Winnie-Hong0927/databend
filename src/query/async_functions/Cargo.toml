@@ -15,6 +15,7 @@ databend-common-catalog = { workspace = true }
 databend-common-exception = { workspace = true }
 databend-common-expression = { workspace = true }
 databend-common-meta-app = { workspace = true }
+opendal = { workspace = true }
 educe = "0.4"
 
 [dev-dependencies]
