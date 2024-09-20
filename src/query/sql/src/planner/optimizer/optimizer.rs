@@ -67,6 +67,7 @@ pub struct OptimizerContext {
     enable_distributed_optimization: bool,
     enable_join_reorder: bool,
     enable_dphyp: bool,
+    planning_agg_index: bool,
     #[educe(Debug(ignore))]
     sample_executor: Option<Arc<dyn QuerySampleExecutor>>,
 }
@@ -81,6 +82,7 @@ impl OptimizerContext {
             enable_join_reorder: true,
             enable_dphyp: true,
             sample_executor: None,
+            planning_agg_index: false,
         }
     }
 
@@ -104,6 +106,11 @@ impl OptimizerContext {
         sample_executor: Option<Arc<dyn QuerySampleExecutor>>,
     ) -> Self {
         self.sample_executor = sample_executor;
+        self
+    }
+
+    pub fn with_planning_agg_index(mut self) -> Self {
+        self.planning_agg_index = true;
         self
     }
 }
@@ -370,7 +377,6 @@ pub async fn optimize_query(opt_ctx: &mut OptimizerContext, mut s_expr: SExpr) -
 
     // After join reorder, Convert some single join to inner join.
     s_expr = SingleToInnerOptimizer::new().run(&s_expr)?;
-
     // Deduplicate join conditions.
     s_expr = DeduplicateJoinConditionOptimizer::new().run(&s_expr)?;
 
@@ -410,8 +416,10 @@ pub async fn optimize_query(opt_ctx: &mut OptimizerContext, mut s_expr: SExpr) -
         }
     };
 
-    s_expr =
-        RecursiveOptimizer::new([RuleID::EliminateEvalScalar].as_slice(), opt_ctx).run(&s_expr)?;
+    if !opt_ctx.planning_agg_index {
+        s_expr = RecursiveOptimizer::new([RuleID::EliminateEvalScalar].as_slice(), opt_ctx)
+            .run(&s_expr)?;
+    }
 
     Ok(s_expr)
 }

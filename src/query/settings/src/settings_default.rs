@@ -460,7 +460,24 @@ impl DefaultSettings {
                     mode: SettingMode::Both,
                     range: Some(SettingRange::Numeric(0..=100)),
                 }),
-
+                ("window_num_partitions", DefaultSettingValue {
+                    value: UserSettingValue::UInt64(256),
+                    desc: "Sets the number of partitions for window operator.",
+                    mode: SettingMode::Both,
+                    range: Some(SettingRange::Numeric(0..=u64::MAX)),
+                }),
+                ("window_spill_unit_size_mb", DefaultSettingValue {
+                    value: UserSettingValue::UInt64(256),
+                    desc: "Sets the spill unit size (MB) for window operator.",
+                    mode: SettingMode::Both,
+                    range: Some(SettingRange::Numeric(0..=u64::MAX)),
+                }),
+                ("window_partition_sort_block_size", DefaultSettingValue {
+                    value: UserSettingValue::UInt64(65536),
+                    desc: "Sets the block size of data blocks to be sorted in window partition.",
+                    mode: SettingMode::Both,
+                    range: Some(SettingRange::Numeric(0..=u64::MAX)),
+                }),
                 ("sort_spilling_bytes_threshold_per_proc", DefaultSettingValue {
                     value: UserSettingValue::UInt64(0),
                     desc: "Sets the maximum amount of memory in bytes that a sorter can use before spilling data to storage during query execution.",
@@ -590,6 +607,15 @@ impl DefaultSettings {
                     mode: SettingMode::Both,
                     range: Some(SettingRange::Numeric(0..=1)),
                 }),
+                (
+                    "enable_compact_after_multi_table_insert",
+                    DefaultSettingValue {
+                        value: UserSettingValue::UInt64(0),
+                        desc: "Enables recluster and compact after multi-table insert.",
+                        mode: SettingMode::Both,
+                        range: Some(SettingRange::Numeric(0..=1)),
+                    }
+                ),
                 ("auto_compaction_imperfect_blocks_threshold", DefaultSettingValue {
                     value: UserSettingValue::UInt64(25),
                     desc: "Threshold for triggering auto compaction. This occurs when the number of imperfect blocks in a snapshot exceeds this value after write operations.",
@@ -631,6 +657,15 @@ impl DefaultSettings {
                     desc: "Sets the seconds that recluster final will be timeout.",
                     mode: SettingMode::Both,
                     range: Some(SettingRange::Numeric(0..=u64::MAX)),
+                }),
+                ("default_order_by_null", DefaultSettingValue {
+                    value: UserSettingValue::String("nulls_last".to_string()),
+                    desc: "Set numeric default_order_by_null mode",
+                    mode: SettingMode::Both,
+                    range: Some(SettingRange::String(vec![
+                        "nulls_first".into(), "nulls_last".into(), 
+                        "nulls_first_on_asc_last_on_desc".into(), "nulls_last_on_asc_first_on_desc".into(), 
+                    ])),
                 }),
                 ("ddl_column_type_nullable", DefaultSettingValue {
                     value: UserSettingValue::UInt64(1),
